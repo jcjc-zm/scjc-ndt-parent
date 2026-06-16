@@ -147,15 +147,8 @@ function getRowData(rowObj) {
 }
 
 const ROW_HEIGHT = 26
-const HEADER_HEIGHT = 30
 
-function calcViewportRows() {
-  const container = spreadsheetEl.value?.parentElement
-  if (!container || !container.clientHeight) return 25
-  return Math.floor((container.clientHeight - HEADER_HEIGHT) / ROW_HEIGHT)
-}
-
-// Only pass real data (no extra empty rows — minSpareRows handles that)
+// Only pass real data — minSpareRows auto-fills empty rows below
 function buildSheetData() {
   return tableData.map((row) => getRowData(row))
 }
@@ -175,18 +168,13 @@ function refreshSheet() {
 function initSpreadsheet() {
   if (!spreadsheetEl.value || worksheet) return
 
-  const containerHeight = spreadsheetEl.value.parentElement?.clientHeight || 600
-  // minSpareRows: always show this many empty rows beyond data → fills viewport
-  const spareRows = Math.max(10, calcViewportRows())
-
   try {
-    // jspreadsheet v5 expects options wrapped in worksheets array
     jspreadsheet(spreadsheetEl.value, {
       worksheets: [{
         data: buildSheetData(),
         columns: jsColumns.value,
         freezeColumns: 2,
-        minSpareRows: spareRows,
+        minSpareRows: 500,
         allowInsertRow: true,
         allowDeleteRow: true,
         allowInsertColumn: false,
@@ -194,8 +182,7 @@ function initSpreadsheet() {
         allowRenameColumn: false,
         columnSorting: false,
         columnDrag: false,
-        tableOverflow: true,
-        tableHeight: containerHeight + 'px',
+        tableOverflow: false,
         defaultRowHeight: ROW_HEIGHT,
         defaultColWidth: 90,
         editable: true,
@@ -810,13 +797,13 @@ function handleResize() {
   gap: 8px;
 }
 
-/* Spreadsheet container — jspreadsheet manages its own scrollbars */
+/* Spreadsheet — native browser scrollbars (bottom + right), fills viewport */
 .sheet-wrap {
   flex: 1 1 auto;
   min-height: 300px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: auto;
   background: #fff;
   position: relative;
 }
@@ -835,8 +822,6 @@ function handleResize() {
 }
 
 .spreadsheet-container {
-  width: 100%;
-  height: 100%;
   min-height: 300px;
 }
 
