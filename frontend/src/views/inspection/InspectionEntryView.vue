@@ -175,9 +175,6 @@ function initSpreadsheet() {
 
   const data = buildSheetData()
 
-  // Calculate available height for the spreadsheet
-  const containerHeight = spreadsheetEl.value.parentElement?.clientHeight || 600
-
   try {
     // jspreadsheet v5 expects options wrapped in worksheets array
     jspreadsheet(spreadsheetEl.value, {
@@ -193,8 +190,7 @@ function initSpreadsheet() {
         allowRenameColumn: false,
         columnSorting: false,
         columnDrag: false,
-        tableOverflow: true,
-        tableHeight: containerHeight + 'px',
+        tableOverflow: false,
         defaultRowHeight: 26,
         defaultColWidth: 90,
         editable: true,
@@ -735,7 +731,8 @@ function handleResize() {
   animation: fadeIn 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 48px);
+  height: calc(100vh - var(--header-height) - 16px);
+  padding: 0 8px;
 }
 
 @keyframes fadeIn {
@@ -812,13 +809,13 @@ function handleResize() {
   gap: 8px;
 }
 
-/* Spreadsheet container */
+/* Spreadsheet container — fills viewport, shows both scrollbars */
 .sheet-wrap {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 300px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: auto;
   background: #fff;
   position: relative;
 }
@@ -837,9 +834,12 @@ function handleResize() {
 }
 
 .spreadsheet-container {
-  width: 100%;
-  height: 100%;
   min-height: 300px;
+}
+
+/* jspreadsheet table fills to all columns naturally, parent handles scrolling */
+.sheet-wrap :deep(.jspreadsheet) {
+  min-width: max-content;
 }
 
 /* Override jspreadsheet styles for better integration */
