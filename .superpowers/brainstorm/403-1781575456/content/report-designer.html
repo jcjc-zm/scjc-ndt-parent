@@ -1,0 +1,192 @@
+<h2>拖拽报告设计器</h2>
+<p class="subtitle">左侧字段池 + 中间画布 + 右侧属性 · 自由排版报告模板</p>
+
+<div class="mockup">
+  <div class="mockup-header">报告设计器 · 川二线·二标段 RT检测报告模板</div>
+  <div class="mockup-body">
+    <div style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;font-size:11px">
+      <!-- Designer layout: 3 panels -->
+      <div style="display:flex;height:500px">
+
+        <!-- Left: Field Pool -->
+        <div style="width:200px;background:#f8fafc;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0">
+          <div style="padding:10px 12px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+            📦 字段组件
+            <span style="font-size:9px;color:#94a3b8;font-weight:400">拖到画布</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:8px">
+            <!-- Field groups -->
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase">📋 基础信息</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;white-space:nowrap" title="拖到画布">工程名称</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px" title="拖到画布">施工单位</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">规格</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">材质</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">坡口形式</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">部位</div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase">🔧 检测参数</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">检测方法</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">检测标准</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">合格级别</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">比例</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">检测长度(m)</div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase">📝 检测结果</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#f59e0b;background:#fffbeb">级别</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#f59e0b;background:#fffbeb">检测结论</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">检测日期</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#f59e0b;background:#fffbeb">报告中缺陷位置</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#f59e0b;background:#fffbeb">报告中缺陷性质</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#f59e0b;background:#fffbeb">报告中缺陷长度</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">检测人员</div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:4px;text-transform:uppercase">🖼️ 附加</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px;border-color:#8b5cf6;background:#f5f3ff">图片</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">焊口编号</div>
+                <div draggable="true" style="padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:grab;font-size:10px">备注</div>
+              </div>
+            </div>
+            <div style="margin-top:8px;padding:8px;background:#eff6ff;border-radius:6px;font-size:10px;color:#1d4ed8">
+              💡 拖拽字段到画布中，支持调整位置和大小
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Canvas (A4 simulation) -->
+        <div style="flex:1;background:#e2e8f0;overflow:auto;display:flex;align-items:start;justify-content:center;padding:20px">
+          <div style="background:#fff;width:680px;min-height:960px;box-shadow:0 4px 20px rgba(0,0,0,.1);position:relative;padding:40px;font-size:11px">
+            <!-- Report header area -->
+            <div style="text-align:center;margin-bottom:24px;border-bottom:2px solid #334155;padding-bottom:12px">
+              <div style="font-size:18px;font-weight:700;color:#334155">焊缝无损检测报告</div>
+              <div style="font-size:10px;color:#94a3b8;margin-top:4px">报告编号: <span style="background:#f1f5f9;padding:1px 8px;border-radius:2px;color:#64748b">自动生成</span></div>
+            </div>
+            <!-- Placed fields - 2x2 grid example -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:16px">
+              <div style="display:flex;border-bottom:1px dashed #e2e8f0;padding:4px 0">
+                <span style="color:#64748b;width:70px;flex-shrink:0;font-size:10px">工程名称</span>
+                <span style="color:#334155;font-weight:500;cursor:pointer;padding:2px 6px;border:2px solid transparent;border-radius:2px" onclick="this.style.border='2px solid #3b82f6'" onblur="this.style.border='2px solid transparent'">点击绑定数据字段</span>
+              </div>
+              <div style="display:flex;border-bottom:1px dashed #e2e8f0;padding:4px 0">
+                <span style="color:#64748b;width:70px;flex-shrink:0;font-size:10px">施工单位</span>
+                <span style="color:#334155;font-weight:500">点击绑定数据字段</span>
+              </div>
+              <div style="display:flex;border-bottom:1px dashed #e2e8f0;padding:4px 0">
+                <span style="color:#64748b;width:70px;flex-shrink:0;font-size:10px">规格</span>
+                <span style="color:#334155;font-weight:500">Φ1016×21</span>
+              </div>
+              <div style="display:flex;border-bottom:1px dashed #e2e8f0;padding:4px 0">
+                <span style="color:#64748b;width:70px;flex-shrink:0;font-size:10px">材质</span>
+                <span style="color:#334155;font-weight:500">X80</span>
+              </div>
+            </div>
+            <!-- Defect table area -->
+            <div style="margin:16px 0;padding:4px;border:1px dashed #cbd5e1;background:#fafafa;border-radius:4px;position:relative">
+              <div style="position:absolute;top:-8px;left:12px;font-size:9px;color:#94a3b8;background:#fafafa;padding:0 4px">📊 缺陷记录表</div>
+              <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px">
+                <tr style="background:#f1f5f9"><th style="border:1px solid #e2e8f0;padding:4px">位置</th><th style="border:1px solid #e2e8f0;padding:4px">缺陷性质</th><th style="border:1px solid #e2e8f0;padding:4px">长度(mm)</th><th style="border:1px solid #e2e8f0;padding:4px">级别</th></tr>
+                <tr><td style="border:1px solid #e2e8f0;padding:4px;text-align:center">1</td><td style="border:1px solid #e2e8f0;padding:4px;text-align:center">气孔</td><td style="border:1px solid #e2e8f0;padding:4px;text-align:center">5.2</td><td style="border:1px solid #e2e8f0;padding:4px;text-align:center">Ⅱ</td></tr>
+              </table>
+            </div>
+            <!-- Signature area -->
+            <div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+              <div style="text-align:center">
+                <div style="color:#64748b;font-size:10px;margin-bottom:32px">检测人员（签字）</div>
+                <div style="border-top:1px solid #334155;width:120px;margin:0 auto"></div>
+              </div>
+              <div style="text-align:center">
+                <div style="color:#64748b;font-size:10px;margin-bottom:32px">技术负责人（签字）</div>
+                <div style="border-top:1px solid #334155;width:120px;margin:0 auto"></div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:12px;font-size:10px;color:#94a3b8">报告生成日期: 2026-06-16</div>
+          </div>
+        </div>
+
+        <!-- Right: Properties -->
+        <div style="width:200px;background:#f8fafc;border-left:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0">
+          <div style="padding:10px 12px;font-weight:600;color:#334155;border-bottom:1px solid #e2e8f0">⚙️ 属性</div>
+          <div style="flex:1;padding:12px;font-size:10px;overflow-y:auto">
+            <div style="color:#94a3b8;margin-bottom:8px">选中字段的属性</div>
+            <div style="margin-bottom:12px">
+              <div style="font-weight:600;margin-bottom:4px;color:#475569">标签</div>
+              <input value="规格" style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;box-sizing:border-box">
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-weight:600;margin-bottom:4px;color:#475569">数据绑定</div>
+              <select style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;box-sizing:border-box">
+                <option>specification</option>
+                <option>material</option>
+                <option>project_name</option>
+              </select>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-weight:600;margin-bottom:4px;color:#475569">字体大小</div>
+              <select style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;box-sizing:border-box">
+                <option>10px</option><option selected>11px</option><option>12px</option><option>14px</option>
+              </select>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-weight:600;margin-bottom:4px;color:#475569">粗细</div>
+              <select style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;box-sizing:border-box">
+                <option>Normal</option><option selected>Medium</option><option>Bold</option>
+              </select>
+            </div>
+            <div style="margin-bottom:12px">
+              <div style="font-weight:600;margin-bottom:4px;color:#475569">宽度</div>
+              <select style="width:100%;padding:6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;box-sizing:border-box">
+                <option>自动</option><option>半宽</option><option>全宽</option>
+              </select>
+            </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0">
+              <button style="width:100%;padding:6px;background:#dc2626;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer">🗑 从画布移除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Bottom toolbar -->
+      <div style="padding:10px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;background:#f8fafc">
+        <button style="padding:6px 16px;background:#059669;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">💾 保存模板</button>
+        <button style="padding:6px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">👁 预览</button>
+        <button style="padding:6px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📄 导出PDF</button>
+        <span style="margin-left:auto;font-size:10px;color:#94a3b8">📐 画布: A4 · 模板适用于: RT射线检测</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px">
+  <h3>报告设计器核心功能</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse">
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569;width:140px">📦 左侧字段池</td>
+      <td style="padding:8px">按类别分组（基础信息/检测参数/检测结果/附加），拖拽到画布即可添加</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">📐 中间A4画布</td>
+      <td style="padding:8px">模拟标准 A4 纸 (210×297mm)，所见即所得，支持字段拖拽移动、缩放</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">⚙️ 右侧属性</td>
+      <td style="padding:8px">选中字段后编辑标签名、数据绑定、字体大小/粗细、宽度</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔗 数据绑定</td>
+      <td style="padding:8px">每个标签绑定到检测数据表的字段，生成报告时自动填入真实数据</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;font-weight:600;color:#475569">🔧 技术选型</td>
+      <td style="padding:8px"><code>vue-draggable-plus</code> 实现拖拽 + <code>html2canvas + jsPDF</code> 导出 PDF</td>
+    </tr>
+  </table>
+</div>

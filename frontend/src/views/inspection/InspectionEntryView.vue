@@ -7,6 +7,7 @@ import { useUserStore } from '@/stores/user'
 import { inspectionApi } from '@/api/inspection'
 import { projectApi } from '@/api/project'
 import jspreadsheet from 'jspreadsheet-ce'
+import 'jsuites/dist/jsuites.css'
 import 'jspreadsheet-ce/dist/jspreadsheet.css'
 import * as XLSX from 'xlsx'
 
@@ -32,7 +33,7 @@ const columnDefs = [
   { field: 'inspectionMethod', title: '检测方法', width: 90, type: 'dropdown', source: methodTypes },
   { field: 'constructionUnit', title: '施工单位', width: 130, type: 'text' },
   { field: 'instructionNo', title: '指令编号', width: 120, type: 'text' },
-  { field: 'instructionDate', title: '指令日期', width: 110, type: 'calendar' },
+  { field: 'instructionDate', title: '指令日期', width: 110, type: 'text' },
   { field: 'projectName', title: '工程名称', width: 140, type: 'text' },
   { field: 'unitProjectName', title: '单位工程名称', width: 140, type: 'text' },
   { field: 'buDept', title: '所属事业部', width: 110, type: 'text' },
@@ -50,7 +51,7 @@ const columnDefs = [
   { field: 'inspectionLength', title: '检测长度(m)', width: 105, type: 'numeric', mask: '#.##' },
   { field: 'processCardNo', title: '工艺卡编号', width: 120, type: 'text' },
   { field: 'samplingInstructionNo', title: '抽检指令编号', width: 130, type: 'text' },
-  { field: 'inspectionDate', title: '检测日期', width: 110, type: 'calendar' },
+  { field: 'inspectionDate', title: '检测日期', width: 110, type: 'text' },
   { field: 'resultLevel', title: '级别', width: 65, type: 'dropdown', source: levelOptions },
   { field: 'inspectionConclusion', title: '检测结论', width: 95, type: 'dropdown', source: conclusionOptions },
   { field: 'unqualifiedHandling', title: '不合格处理', width: 130, type: 'text' },
@@ -75,8 +76,7 @@ const jsColumns = computed(() =>
     name: col.field,
     title: col.title,
     width: col.width,
-    type: col.type === 'calendar' ? 'calendar' :
-          col.type === 'dropdown' ? 'dropdown' :
+    type: col.type === 'dropdown' ? 'dropdown' :
           col.type === 'numeric' ? 'numeric' : 'text',
     source: col.source || undefined,
     mask: col.mask || undefined,
@@ -175,37 +175,49 @@ function initSpreadsheet() {
 
   const data = buildSheetData()
 
-  // jspreadsheet() transforms the element and returns it
-  // The worksheet instance is then accessible via element.jspreadsheet
-  jspreadsheet(spreadsheetEl.value, {
-    data,
-    columns: jsColumns.value,
-    freezeColumns: 2,
-    minSpareRows: 0,
-    allowInsertRow: true,
-    allowDeleteRow: true,
-    allowInsertColumn: false,
-    allowDeleteColumn: false,
-    allowRenameColumn: false,
-    columnSorting: false,
-    columnDrag: false,
-    tableOverflow: true,
-    tableHeight: '100%',
-    defaultRowHeight: 26,
-    defaultColWidth: 90,
-    editable: true,
-    allowComments: false,
-    // Cell change handler (auto-save on change with debounce)
-    onchange: handleCellChange,
-    // When user deletes a row via right-click or delete key
-    ondeleterow: handleDeleteRow,
-    // When user inserts a row
-    oninsertrow: handleInsertRow,
-    // Flush saves when table loses focus
-    onblur: handleTableBlur,
-  })
+  // Calculate available height for the spreadsheet
+  const containerHeight = spreadsheetEl.value.parentElement?.clientHeight || 600
 
-  worksheet = spreadsheetEl.value.jspreadsheet
+  try {
+    // jspreadsheet v5 expects options wrapped in worksheets array
+    jspreadsheet(spreadsheetEl.value, {
+      worksheets: [{
+        data,
+        columns: jsColumns.value,
+        freezeColumns: 2,
+        minSpareRows: 0,
+        allowInsertRow: true,
+        allowDeleteRow: true,
+        allowInsertColumn: false,
+        allowDeleteColumn: false,
+        allowRenameColumn: false,
+        columnSorting: false,
+        columnDrag: false,
+        tableOverflow: true,
+        tableHeight: containerHeight + 'px',
+        defaultRowHeight: 26,
+        defaultColWidth: 90,
+        editable: true,
+        allowComments: false,
+        // Cell change handler (auto-save on change with debounce)
+        onchange: handleCellChange,
+        // When user deletes a row via right-click or delete key
+        ondeleterow: handleDeleteRow,
+        // When user inserts a row
+        oninsertrow: handleInsertRow,
+        // Flush saves when table loses focus
+        onblur: handleTableBlur,
+      }]
+    })
+
+    // v5 returns JspreadsheetInstance with .current (array of worksheets)
+    const instance = spreadsheetEl.value.jspreadsheet
+    if (instance) {
+      worksheet = instance.current ? instance.current[0] : instance
+    }
+  } catch (err) {
+    console.error('jspreadsheet init failed:', err)
+  }
 }
 
 // ─── Table blur handler — flush all pending saves ───
@@ -566,8 +578,12 @@ async function handleDeleteSelected() {
 onMounted(async () => {
   await loadProject()
   await loadData()
+  // Wait for DOM to fully settle before initializing spreadsheet
+  await nextTick()
   await nextTick()
   initSpreadsheet()
+  // Listen for resize to keep table height in sync
+  window.addEventListener('resize', handleResize)
 })
 
 onBeforeUnmount(() => {
@@ -576,14 +592,30 @@ onBeforeUnmount(() => {
     clearTimeout(saveTimer)
     flushDirtyRows()
   }
-  // Destroy spreadsheet
-  if (worksheet) {
-    try {
-      // jspreadsheet doesn't have a destroy method, but we can clean up
-      worksheet = null
-    } catch { /* ignore */ }
+  window.removeEventListener('resize', handleResize)
+  // Clean up
+  worksheet = null
+  if (spreadsheetEl.value) {
+    spreadsheetEl.value.innerHTML = ''
   }
 })
+
+let resizeTimer = null
+function handleResize() {
+  clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    if (worksheet && spreadsheetEl.value?.parentElement) {
+      const h = spreadsheetEl.value.parentElement.clientHeight
+      if (h > 0) {
+        isInternalUpdate = true
+        try {
+          worksheet.setData(buildSheetData())
+        } catch { /* ignore */ }
+        isInternalUpdate = false
+      }
+    }
+  }, 200)
+}
 </script>
 
 <template>
@@ -644,8 +676,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Jspreadsheet container -->
-    <div class="sheet-wrap" v-loading="loading">
+    <!-- Jspreadsheet container (always rendered, loading overlay on top) -->
+    <div class="sheet-wrap">
+      <div v-if="loading" class="sheet-loading-overlay">
+        <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+        <p>加载数据中...</p>
+      </div>
       <div ref="spreadsheetEl" class="spreadsheet-container"></div>
     </div>
 
@@ -779,16 +815,31 @@ onBeforeUnmount(() => {
 /* Spreadsheet container */
 .sheet-wrap {
   flex: 1;
-  min-height: 0;
+  min-height: 300px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
   background: #fff;
+  position: relative;
+}
+
+.sheet-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 10;
 }
 
 .spreadsheet-container {
   width: 100%;
   height: 100%;
+  min-height: 300px;
 }
 
 /* Override jspreadsheet styles for better integration */

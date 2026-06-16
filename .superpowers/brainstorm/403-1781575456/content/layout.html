@@ -1,0 +1,119 @@
+<h2>SCJC NDT 平台 - 整体布局方案</h2>
+<p class="subtitle">选择您偏好的整体布局结构</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>经典侧边栏布局</h3>
+      <p>左侧固定导航 + 顶部工具栏 + 内容区。最深只支持两级菜单，结构清晰，适合大多数企业后台</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>顶部导航 + 侧边栏二级布局</h3>
+      <p>顶部一级菜单（项目/检测/报告/系统）+ 左侧二级菜单，信息密度高时更清晰，适合模块多的场景</p>
+    </div>
+  </div>
+</div>
+
+<hr style="margin:32px 0; border-color: var(--c-border)">
+
+<h3>方案 A — 经典侧边栏</h3>
+<div class="mockup">
+  <div class="mockup-header">侧边栏布局 · 展开态</div>
+  <div class="mockup-body">
+    <div style="display:flex; height:360px; font-size:11px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+      <div style="width:200px;background:#1e293b;color:#cbd5e1;padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+        <div style="color:#fff;font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <div style="width:22px;height:22px;background:#059669;border-radius:4px"></div>
+          SCJC NDT
+        </div>
+        <div style="background:#05966920;color:#059669;padding:6px 8px;border-radius:6px;font-weight:600">📊 仪表盘</div>
+        <div style="padding:6px 8px;border-radius:6px">📁 项目管理</div>
+        <div style="padding:6px 8px;border-radius:6px">🔍 检测数据</div>
+        <div style="padding:6px 8px;border-radius:6px">📝 报告管理</div>
+        <div style="padding:6px 8px;border-radius:6px">✍️ 签字审批</div>
+        <div style="padding:6px 8px;border-radius:6px">👥 用户管理</div>
+        <div style="margin-top:auto;padding:6px 8px;border-radius:6px">⚙️ 系统设置</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="background:#fff;padding:8px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:600">📊 仪表盘</span>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="mock-input" style="width:160px;margin:0">搜索...</div>
+            <div style="width:28px;height:28px;background:#e2e8f0;border-radius:50%"></div>
+            <span style="font-size:11px">管理员</span>
+          </div>
+        </div>
+        <div style="flex:1;padding:16px;background:#f8fafc;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">检测总任务</div><div style="font-size:22px;font-weight:700;color:#334155">1,248</div><div style="color:#059669;font-size:10px">↑ 12%</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">本月合格率</div><div style="font-size:22px;font-weight:700;color:#334155">96.7%</div><div style="color:#059669;font-size:10px">↑ 0.5%</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">待签字</div><div style="font-size:22px;font-weight:700;color:#dc2626">23</div><div style="color:#94a3b8;font-size:10px">需要处理</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">本周新增</div><div style="font-size:22px;font-weight:700;color:#334155">86</div><div style="color:#059669;font-size:10px">↑ 8%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<br>
+
+<h3>方案 B — 顶部 + 侧边栏双导航</h3>
+<div class="mockup">
+  <div class="mockup-header">顶部主导航 + 左侧二级菜单</div>
+  <div class="mockup-body">
+    <div style="display:flex;flex-direction:column;height:360px;font-size:11px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+      <div style="background:#1e293b;color:#cbd5e1;padding:8px 16px;display:flex;align-items:center;gap:24px">
+        <div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px">
+          <div style="width:22px;height:22px;background:#059669;border-radius:4px"></div>
+          SCJC NDT
+        </div>
+        <div style="display:flex;gap:20px;font-size:12px">
+          <span style="color:#fff;border-bottom:2px solid #059669;padding-bottom:2px">仪表盘</span>
+          <span>项目管理</span>
+          <span>检测数据</span>
+          <span>报告管理</span>
+          <span>签字审批</span>
+          <span>系统</span>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:12px;align-items:center">
+          <div class="mock-input" style="width:140px;margin:0">搜索...</div>
+          <span>管理员</span>
+        </div>
+      </div>
+      <div style="display:flex;flex:1">
+        <div style="width:160px;background:#f1f5f9;padding:8px;display:flex;flex-direction:column;gap:4px;font-size:10px">
+          <div style="padding:5px 8px;border-radius:4px;background:#05966915;color:#059669;font-weight:600">📊 总览</div>
+          <div style="padding:5px 8px;border-radius:4px">📈 项目分布</div>
+          <div style="padding:5px 8px;border-radius:4px">📅 周工作量</div>
+          <div style="padding:5px 8px;border-radius:4px">⏳ 我的待办</div>
+        </div>
+        <div style="flex:1;padding:16px;background:#f8fafc;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">检测总任务</div><div style="font-size:22px;font-weight:700;color:#334155">1,248</div><div style="color:#059669;font-size:10px">↑ 12%</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">本月合格率</div><div style="font-size:22px;font-weight:700;color:#334155">96.7%</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">待签字</div><div style="font-size:22px;font-weight:700;color:#dc2626">23</div></div>
+          <div style="background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="color:#94a3b8;font-size:10px">本周新增</div><div style="font-size:22px;font-weight:700;color:#334155">86</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros"><h4>方案 A 推荐理由</h4>
+    <ul>
+      <li>侧边栏可折叠，给大屏内容留更多空间</li>
+      <li>Element Plus 默认支持，实现成本低</li>
+      <li>菜单层级一眼可见，学习成本低</li>
+    </ul>
+  </div>
+  <div class="cons"><h4>方案 B 适合场景</h4>
+    <ul>
+      <li>后期模块增加到 8+ 个时更清晰</li>
+      <li>多角色入口可以在顶部区分</li>
+      <li>开发量略大于方案 A</li>
+    </ul>
+  </div>
+</div>

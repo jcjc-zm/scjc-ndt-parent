@@ -1,0 +1,28 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/scjc_ndt?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      id-type: auto
+
+jwt:
+  secret: scjc-ndt-jwt-secret-key-2026-very-long-and-secure-string
+  expiration: 86400000

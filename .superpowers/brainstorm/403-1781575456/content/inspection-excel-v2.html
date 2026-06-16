@@ -1,0 +1,199 @@
+<h2>检测数据录入 v2 — 真正像 Excel 的编辑体验</h2>
+<p class="subtitle">自由编辑 · 失焦即保存 · 无需逐行确认</p>
+
+<div class="mockup">
+  <div class="mockup-header">编辑模式：像 Excel 一样操作</div>
+  <div class="mockup-body">
+    <div style="background:#fff;border-radius:8px;overflow:hidden;font-size:11px;border:1px solid #e2e8f0">
+      <!-- Toolbar -->
+      <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#334155;margin-right:4px">🏗️ 当前项目</span>
+        <select style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:5px;font-size:11px;background:#fff;min-width:180px">
+          <option>川二线·二标段·焊口检测</option>
+          <option>川二线·三标段·焊口检测</option>
+          <option>西三线·一标段·焊口检测</option>
+        </select>
+        <div style="width:1px;height:22px;background:#e2e8f0"></div>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📥 导入Excel</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📤 导出Excel</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📋 下载模板</button>
+        <div style="width:1px;height:22px;background:#e2e8f0"></div>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">↩ 撤销</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">↪ 重做</button>
+        <button style="padding:5px 12px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:5px;font-size:11px;cursor:pointer">🗑 删除选中行</button>
+        <span style="margin-left:auto;color:#94a3b8;font-size:10px">
+          共 <b style="color:#334155">156</b> 条 ·
+          已修改 <b style="color:#f59e0b">12</b> 条 ·
+          <span style="color:#059669">自动保存中...</span>
+        </span>
+      </div>
+      <!-- Table body -->
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse;min-width:2200px;width:max-content">
+          <thead>
+            <tr style="background:#f1f5f9;position:sticky;top:0;z-index:2">
+              <th style="padding:6px 8px;border:1px solid #cbd5e1;width:36px;text-align:center"><input type="checkbox" style="margin:0"></th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">施工单位</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:140px">焊口编号</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:120px">指令编号</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">指令日期</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:90px">检测方法</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:140px">工程名称</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:90px">规格</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:80px">材质</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:80px">坡口形式</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">部位</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">检测日期</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:70px">级别</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:80px">检测结论</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">检测人员</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;min-width:100px">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1 - normal data -->
+            <tr style="background:#fff" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">四川油建</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">WK-CD-0624-001</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">ZL-2026-0892</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-10</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="background:#05966915;color:#059669;padding:2px 6px;border-radius:3px;font-weight:600">RT</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">川气东送二线</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">Φ1016×21</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">X80</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">V型</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">主线路</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-11</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="background:#fef2f2;color:#dc2626;padding:2px 6px;border-radius:3px">Ⅳ级</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="color:#dc2626;font-weight:600">不合格</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">张工</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0">
+                <span style="color:#059669;cursor:pointer" title="添加缺陷">➕ 缺陷</span>
+                <span style="color:#dc2626;cursor:pointer;margin-left:8px" title="删除">🗑</span>
+              </td>
+            </tr>
+            <!-- Row 2 - currently editing cells are blue-outlined -->
+            <tr style="background:#fff" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:2px;background:#eff6ff">
+                <input value="重庆油建" style="border:none;outline:2px solid #3b82f6;outline-offset:-2px;padding:6px 10px;font-size:11px;background:#eff6ff;width:100%;box-sizing:border-box" onblur="this.style.background='#fff'">
+              </td>
+              <td style="padding:2px;background:#eff6ff">
+                <input value="WK-CQ-0624-015" style="border:none;outline:2px solid #3b82f6;outline-offset:-2px;padding:6px 10px;font-size:11px;background:#eff6ff;width:100%;box-sizing:border-box">
+              </td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">ZL-2026-0912</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-12</td>
+              <td style="padding:2px;background:#eff6ff">
+                <select style="border:none;outline:2px solid #3b82f6;outline-offset:-2px;padding:6px 8px;font-size:11px;background:#eff6ff;width:100%"><option>RT</option><option selected>UT</option><option>PT</option><option>MT</option><option>AUT</option><option>PA</option><option>TOFD</option><option>DR</option></select>
+              </td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">川气东送二线</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">Φ813×16</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">X70</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">U型</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">连头</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-13</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="background:#fefce8;color:#b45309;padding:2px 6px;border-radius:3px">Ⅱ级</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="color:#059669;font-weight:600">合格</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">李工</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0">
+                <span style="color:#059669;cursor:pointer">➕ 缺陷</span>
+                <span style="color:#dc2626;cursor:pointer;margin-left:8px">🗑</span>
+              </td>
+            </tr>
+            <!-- Row 3 -->
+            <tr style="background:#fff" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">四川油建</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">WK-CD-0624-003</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">ZL-2026-0894</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-10</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:3px;font-weight:600">UT</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">川气东送二线</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">Φ610×12.5</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">X65</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">X型</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">弯管</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell">2026-06-11</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="background:#f0fdf4;color:#059669;padding:2px 6px;border-radius:3px">Ⅰ级</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0"><span style="color:#059669;font-weight:600">合格</span></td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0;cursor:cell" onclick="this.contentEditable='true';this.focus();this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px'" onblur="this.contentEditable='false';this.style.outline='none'">王工</td>
+              <td style="padding:6px 12px;border:1px solid #e2e8f0">
+                <span style="color:#059669;cursor:pointer">➕ 缺陷</span>
+                <span style="color:#dc2626;cursor:pointer;margin-left:8px">🗑</span>
+              </td>
+            </tr>
+            <!-- New empty rows ready for input -->
+            <tr style="background:#fafafa">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8" onclick="this.contentEditable='true';this.focus();this.innerText='';this.style.outline='2px solid #3b82f6';this.style.outlineOffset='-2px';this.style.color='#334155'" onblur="this.contentEditable='false';this.style.outline='none';if(!this.innerText.trim()){this.innerText='点击输入...';this.style.color='#94a3b8'}">点击输入...</td>
+              <td style="padding:6px 12px;border:1px solid #e8eaed;cursor:cell;color:#94a3b8">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Footer -->
+      <div style="padding:10px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc">
+        <div style="font-size:10px;color:#94a3b8">共 156 条 · 已修改 <b style="color:#f59e0b">12</b> 条 · <span style="color:#059669">✅ 所有修改已自动保存</span></div>
+        <div style="display:flex;gap:4px;align-items:center;font-size:10px">
+          <span style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">◀</span>
+          <span style="padding:4px 10px;background:#334155;color:#fff;border-radius:4px">1</span>
+          <span style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">2</span>
+          <span style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">3</span>
+          <span style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">▶</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px">
+  <h3>交互说明 — 像 Excel 一样灵活</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse">
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569;width:160px">🔹 点击即编辑</td>
+      <td style="padding:8px">点击任意单元格直接进入编辑状态，蓝色边框标示当前编辑格</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 失焦即保存</td>
+      <td style="padding:8px">点击其他单元格 / Tab / Enter 后，该格内容自动保存到数据库（debounce 300ms 防抖）</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 键盘导航</td>
+      <td style="padding:8px">Tab → 右移一格 · Shift+Tab → 左移 · Enter → 下移 · ↑↓←→ 方向键自由移动</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 批量粘贴</td>
+      <td style="padding:8px">从 Excel 复制多行多列数据，粘贴到表格中，自动匹配列并逐格保存</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 枚举下拉</td>
+      <td style="padding:8px">检测方法、级别、结论等固定选项的列，编辑时自动弹出下拉选择</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 项目切换</td>
+      <td style="padding:8px">顶部下拉切换不同项目，表格自动加载对应数据，无需跳转页面</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 新增空行</td>
+      <td style="padding:8px">表格底部始终有空行（灰色提示"点击输入..."），点击即可开始新增数据</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;font-weight:600;color:#475569">🔹 已改追踪</td>
+      <td style="padding:8px">已修改的单元格左侧有标记（计划用黄色竖线），状态栏实时显示"已修改 N 条"</td>
+    </tr>
+  </table>
+</div>

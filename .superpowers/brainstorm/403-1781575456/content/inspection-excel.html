@@ -1,0 +1,169 @@
+<h2>检测数据录入 — 仿 Excel 在线表格</h2>
+<p class="subtitle">立项后自动生成空白数据表，支持在线编辑、导入导出</p>
+
+<div class="mockup">
+  <div class="mockup-header">检测数据录入 · 某项目表格</div>
+  <div class="mockup-body">
+    <div style="background:#fff;border-radius:8px;overflow:hidden;font-size:11px;border:1px solid #e2e8f0">
+      <!-- Toolbar -->
+      <div style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#334155;margin-right:8px">🏗️ 川二线·二标段·焊口检测</span>
+        <div style="width:1px;height:20px;background:#e2e8f0"></div>
+        <button style="padding:5px 12px;background:#059669;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">➕ 新增行</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📥 导入Excel</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📤 导出Excel</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">📋 下载模板</button>
+        <div style="width:1px;height:20px;background:#e2e8f0"></div>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">↩ 撤销</button>
+        <button style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;cursor:pointer">↪ 重做</button>
+        <button style="padding:5px 12px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:5px;font-size:11px;cursor:pointer">🗑 删除选中</button>
+        <div style="width:1px;height:20px;background:#e2e8f0"></div>
+        <span style="color:#94a3b8;font-size:10px">筛选:</span>
+        <select style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px"><option>检测方法</option><option>RT</option><option>UT</option></select>
+        <select style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px"><option>级别</option><option>Ⅰ级</option><option>Ⅱ级</option></select>
+        <input placeholder="焊口编号..." style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px;width:100px">
+        <span style="margin-left:auto;color:#94a3b8;font-size:10px">共 <b style="color:#334155">156</b> 条 · 已选 <b style="color:#059669">3</b> 行</span>
+        <button style="padding:5px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:11px;cursor:pointer;color:#1d4ed8">💾 保存</button>
+      </div>
+      <!-- Table -->
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse;min-width:1800px;width:max-content">
+          <thead>
+            <tr style="background:#f1f5f9;position:sticky;top:0;z-index:1">
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;width:36px;text-align:center"><input type="checkbox" style="margin:0"></th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;width:40px;color:#94a3b8">#</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">施工单位</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">焊口编号</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">指令编号</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">指令日期</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;background:#f0fdf4">检测方法</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">工程名称</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">规格</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">材质</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">检测日期</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;background:#fefce8">级别</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155;background:#fefce8">检测结论</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">检测人员</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">检测报告</th>
+              <th style="padding:6px 12px;border:1px solid #cbd5e1;white-space:nowrap;color:#334155">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#fff">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;color:#94a3b8">1</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">四川油建</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">WK-CD-0624-001</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">ZL-2026-0892</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">2026-06-10</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="background:#05966915;color:#059669;padding:2px 6px;border-radius:3px;font-weight:600">RT</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">川气东送二线</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">Φ1016×21</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">X80</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">2026-06-11</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="background:#fef2f2;color:#dc2626;padding:2px 6px;border-radius:3px">Ⅳ</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="color:#dc2626;font-weight:600">不合格</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">张工</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="color:#3b82f6;cursor:pointer">📄 查看</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">
+                <span style="color:#3b82f6;cursor:pointer">✏️</span>
+                <span style="color:#dc2626;cursor:pointer;margin-left:4px">🗑</span>
+              </td>
+            </tr>
+            <!-- Active editing row -->
+            <tr style="background:#eff6ff">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;color:#94a3b8">2</td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="重庆油建" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="WK-CQ-0624-015" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="ZL-2026-0912" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input type="date" value="2026-06-12" style="border:none;outline:none;background:transparent;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6;background:#f0fdf4">
+                <select style="border:none;outline:none;background:transparent;font-size:11px;padding:4px 6px;width:100%"><option>UT</option><option>RT</option><option>PT</option><option>MT</option><option selected>UT</option><option>AUT</option><option>PA</option><option>TOFD</option><option>DR</option></select>
+              </td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="川气东送二线" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="Φ813×16" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="X70" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input type="date" value="2026-06-13" style="border:none;outline:none;background:transparent;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6;background:#fefce8">
+                <select style="border:none;outline:none;background:transparent;font-size:11px;padding:4px 6px;width:100%"><option>Ⅰ</option><option selected>Ⅱ</option><option>Ⅲ</option><option>Ⅳ</option></select>
+              </td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6;background:#fefce8">
+                <select style="border:none;outline:none;background:transparent;font-size:11px;padding:4px 6px;width:100%"><option>合格</option><option>不合格</option></select>
+              </td>
+              <td style="padding:2px 2px;border:2px solid #3b82f6"><input value="李工" style="border:none;outline:none;background:transparent;width:100%;font-size:11px;padding:4px 6px"></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">—</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">
+                <span style="color:#059669;cursor:pointer;font-weight:600">💾 保存</span>
+                <span style="color:#94a3b8;cursor:pointer;margin-left:4px">✖ 取消</span>
+              </td>
+            </tr>
+            <tr style="background:#fff">
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center"><input type="checkbox"></td>
+              <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;color:#94a3b8">3</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">四川油建</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">WK-CD-0624-003</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">ZL-2026-0894</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">2026-06-10</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="background:#eff6ff;color:#2563eb;padding:2px 6px;border-radius:3px;font-weight:600">UT</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">川气东送二线</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">Φ610×12.5</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">X65</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">2026-06-11</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="background:#f0fdf4;color:#059669;padding:2px 6px;border-radius:3px">Ⅰ</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="color:#059669;font-weight:600">合格</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">王工</td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0"><span style="color:#3b82f6;cursor:pointer">📄 查看</span></td>
+              <td style="padding:4px 8px;border:1px solid #e2e8f0">
+                <span style="color:#3b82f6;cursor:pointer">✏️</span>
+                <span style="color:#dc2626;cursor:pointer;margin-left:4px">🗑</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      <div style="padding:10px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc">
+        <div style="display:flex;gap:4px;font-size:10px;color:#94a3b8">
+          <span>第 1-50 条</span>
+          <span>·</span>
+          <span>共 156 条</span>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;font-size:10px">
+          <span style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">◀</span>
+          <span style="padding:4px 10px;background:#334155;color:#fff;border-radius:4px">1</span>
+          <span style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">2</span>
+          <span style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">3</span>
+          <span style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">4</span>
+          <span style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer">▶</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px">
+  <h3>Excel 式交互要点</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse">
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569;width:140px">单元格编辑</td>
+      <td style="padding:8px">双击进入编辑，Tab/Enter 切换单元格，方向键导航，Esc 取消</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">批量操作</td>
+      <td style="padding:8px">Shift 多选行、Ctrl+C/V 复制粘贴单元格、拖拽填充</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">下拉选择</td>
+      <td style="padding:8px">检测方法、级别、结论等字段使用 Select 下拉（绿色/黄色底色标注）</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:8px;font-weight:600;color:#475569">导入校验</td>
+      <td style="padding:8px">导入时校验必填字段、数据格式，错误行标红提示</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;font-weight:600;color:#475569">技术选型</td>
+      <td style="padding:8px"><code>vxe-table</code> 实现 Excel 编辑体验，<code>xlsx (SheetJS)</code> 处理导入导出</td>
+    </tr>
+  </table>
+</div>

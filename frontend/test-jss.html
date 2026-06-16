@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Test</title>
+<link rel="stylesheet" href="node_modules/jspreadsheet-ce/dist/jspreadsheet.css">
+<style>body{margin:20px;font-family:Segoe UI;}#s{height:400px;}</style>
+</head>
+<body>
+<h3>jspreadsheet test</h3>
+<div id="s"></div>
+<script type="module">
+import jspreadsheet from '/node_modules/jspreadsheet-ce/dist/index.js';
+const el = document.getElementById('s');
+console.log('el:', el, 'jspreadsheet:', typeof jspreadsheet);
+try {
+  const inst = jspreadsheet(el, {
+    data: [['A1','B1'],['A2','B2'],['','']],
+    columns: [
+      { name: 'col1', title: 'Column 1', width: 200 },
+      { name: 'col2', title: 'Column 2', width: 200, type: 'dropdown', source: ['X','Y','Z'] }
+    ],
+    freezeColumns: 1,
+    minSpareRows: 2,
+    defaultRowHeight: 28,
+    editable: true,
+  });
+  console.log('worksheet:', el.jspreadsheet);
+  console.log('SUCCESS - table created');
+} catch(e) {
+  console.error('FAILED:', e.message, e.stack);
+}
+</script>
+</body>
+</html>
