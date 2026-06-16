@@ -139,7 +139,7 @@ public class ProjectServiceImpl implements ProjectService {
                 List<String> buNames = userProjects.stream()
                     .map(SysProject::getBuName).filter(Objects::nonNull).distinct()
                     .collect(Collectors.toList());
-                projQ.in(buNames.isEmpty() ? null : SysProject::getBuName, buNames.isEmpty() ? List.of("") : buNames);
+                projQ.in(SysProject::getBuName, buNames.isEmpty() ? List.of("") : buNames);
             } else {
                 List<Long> projectIds = userProjectRelMapper.selectList(
                     new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)
