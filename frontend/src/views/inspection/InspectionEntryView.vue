@@ -1,10 +1,13 @@
 <script setup>
-import { ref, reactive, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Upload, Download, Search, Delete, Grid, Loading, Check } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { inspectionApi } from '@/api/inspection'
 import { projectApi } from '@/api/project'
+import jspreadsheet from 'jspreadsheet-ce'
+import 'jspreadsheet-ce/dist/jspreadsheet.css'
 import * as XLSX from 'xlsx'
 
 const route = useRoute()
@@ -15,13 +18,8 @@ const projectId = ref(Number(route.params.projectId))
 const project = ref(null)
 const loading = ref(false)
 const saving = ref(false)
-const tableData = ref([])
-// Filter
-const filterMethod = ref('')
-const filterKeyword = ref('')
 
-// ─── Column configuration ───
-// Each column: { field, title, width, editRender (if editable), visible }
+// ─── Column definitions ───
 const methodTypes = ['RT', 'UT', 'PT', 'MT', 'AUT', 'PA', 'TOFD', 'DR']
 const levelOptions = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ']
 const conclusionOptions = ['合格', '不合格']
@@ -29,98 +27,74 @@ const grooveOptions = ['V型', 'X型', 'U型', 'I型', 'K型', '双V型']
 const weldMethodOptions = ['GTAW', 'SMAW', 'GMAW', 'FCAW', 'SAW']
 const positionOptions = ['管口', '法兰', '弯头', '三通', '直管段']
 
-// Helper to render select editor
-function selectEditRender(options) {
-  return {
-    name: '$select',
-    props: { clearable: true },
-    options: options.map((o) => ({ label: o, value: o })),
-  }
-}
+const columnDefs = [
+  { field: 'weldNo', title: '焊口编号', width: 120, type: 'text', required: true },
+  { field: 'inspectionMethod', title: '检测方法', width: 90, type: 'dropdown', source: methodTypes },
+  { field: 'constructionUnit', title: '施工单位', width: 130, type: 'text' },
+  { field: 'instructionNo', title: '指令编号', width: 120, type: 'text' },
+  { field: 'instructionDate', title: '指令日期', width: 110, type: 'calendar' },
+  { field: 'projectName', title: '工程名称', width: 140, type: 'text' },
+  { field: 'unitProjectName', title: '单位工程名称', width: 140, type: 'text' },
+  { field: 'buDept', title: '所属事业部', width: 110, type: 'text' },
+  { field: 'specification', title: '规格', width: 90, type: 'text' },
+  { field: 'material', title: '材质', width: 90, type: 'text' },
+  { field: 'grooveType', title: '坡口形式', width: 95, type: 'dropdown', source: grooveOptions },
+  { field: 'position', title: '部位', width: 90, type: 'dropdown', source: positionOptions },
+  { field: 'weldingMethod', title: '焊接方式', width: 95, type: 'dropdown', source: weldMethodOptions },
+  { field: 'ratio', title: '比例', width: 75, type: 'text' },
+  { field: 'inspectionStandard', title: '检测标准', width: 110, type: 'text' },
+  { field: 'qualifiedLevel', title: '合格级别', width: 90, type: 'text' },
+  { field: 'inspectionItem', title: '检测项目', width: 110, type: 'text' },
+  { field: 'welderCode', title: '焊工代号', width: 90, type: 'text' },
+  { field: 'weldingDept', title: '焊接部门', width: 110, type: 'text' },
+  { field: 'inspectionLength', title: '检测长度(m)', width: 105, type: 'numeric', mask: '#.##' },
+  { field: 'processCardNo', title: '工艺卡编号', width: 120, type: 'text' },
+  { field: 'samplingInstructionNo', title: '抽检指令编号', width: 130, type: 'text' },
+  { field: 'inspectionDate', title: '检测日期', width: 110, type: 'calendar' },
+  { field: 'resultLevel', title: '级别', width: 65, type: 'dropdown', source: levelOptions },
+  { field: 'inspectionConclusion', title: '检测结论', width: 95, type: 'dropdown', source: conclusionOptions },
+  { field: 'unqualifiedHandling', title: '不合格处理', width: 130, type: 'text' },
+  { field: 'reportDefectPosition', title: '缺陷位置', width: 110, type: 'text' },
+  { field: 'reportDefectNature', title: '缺陷性质', width: 110, type: 'text' },
+  { field: 'reportDefectLength', title: '缺陷长度', width: 90, type: 'numeric', mask: '#.##' },
+  { field: 'unqualifiedDefectType', title: '不合格缺陷类型', width: 140, type: 'text' },
+  { field: 'remark', title: '备注', width: 140, type: 'text' },
+  { field: 'inspectorName', title: '检测人员', width: 90, type: 'text' },
+  { field: 'boxNo', title: '箱号', width: 90, type: 'text' },
+  { field: 'filmLength', title: '底片长度', width: 90, type: 'numeric', mask: '#.##' },
+  { field: 'filmCount', title: '底片张数', width: 85, type: 'numeric', mask: '#' },
+  { field: 'levelI', title: 'Ⅰ级', width: 60, type: 'numeric', mask: '#' },
+  { field: 'levelIi', title: 'Ⅱ级', width: 60, type: 'numeric', mask: '#' },
+  { field: 'levelIii', title: 'Ⅲ级', width: 60, type: 'numeric', mask: '#' },
+  { field: 'levelIv', title: 'Ⅳ级', width: 60, type: 'numeric', mask: '#' },
+]
 
-function inputEditRender(type = '$input') {
-  return { name: type, props: { clearable: true } }
-}
-
-// Editable columns (showing key ones; all are editable)
-const columns = computed(() => {
-  const base = [
-    { type: 'seq', width: 50, fixed: 'left' },
-    { field: 'weldNo', title: '焊口编号', width: 130, fixed: 'left', editRender: inputEditRender(), required: true },
-    { field: 'inspectionMethod', title: '检测方法', width: 90, editRender: selectEditRender(methodTypes), fixed: 'left' },
-    { field: 'constructionUnit', title: '施工单位', width: 140, editRender: inputEditRender() },
-    { field: 'instructionNo', title: '指令编号', width: 130, editRender: inputEditRender() },
-    { field: 'instructionDate', title: '指令日期', width: 120, editRender: inputEditRender('$input') },
-    { field: 'projectName', title: '工程名称', width: 150, editRender: inputEditRender() },
-    { field: 'unitProjectName', title: '单位工程名称', width: 150, editRender: inputEditRender() },
-    { field: 'buDept', title: '所属事业部', width: 120, editRender: inputEditRender() },
-    { field: 'specification', title: '规格', width: 100, editRender: inputEditRender() },
-    { field: 'material', title: '材质', width: 100, editRender: inputEditRender() },
-    { field: 'grooveType', title: '坡口形式', width: 100, editRender: selectEditRender(grooveOptions) },
-    { field: 'position', title: '部位', width: 100, editRender: selectEditRender(positionOptions) },
-    { field: 'weldingMethod', title: '焊接方式', width: 100, editRender: selectEditRender(weldMethodOptions) },
-    { field: 'ratio', title: '比例', width: 80, editRender: inputEditRender() },
-    { field: 'inspectionStandard', title: '检测标准', width: 120, editRender: inputEditRender() },
-    { field: 'qualifiedLevel', title: '合格级别', width: 100, editRender: inputEditRender() },
-    { field: 'inspectionItem', title: '检测项目', width: 120, editRender: inputEditRender() },
-    { field: 'welderCode', title: '焊工代号', width: 100, editRender: inputEditRender() },
-    { field: 'weldingDept', title: '焊接部门', width: 120, editRender: inputEditRender() },
-    { field: 'inspectionLength', title: '检测长度(m)', width: 110, editRender: { name: '$input', props: { type: 'number', clearable: true } } },
-    { field: 'processCardNo', title: '工艺卡编号', width: 130, editRender: inputEditRender() },
-    { field: 'samplingInstructionNo', title: '抽检指令编号', width: 140, editRender: inputEditRender() },
-    { field: 'inspectionDate', title: '检测日期', width: 120, editRender: inputEditRender() },
-    { field: 'resultLevel', title: '级别', width: 75, editRender: selectEditRender(levelOptions) },
-    { field: 'inspectionConclusion', title: '检测结论', width: 100, editRender: selectEditRender(conclusionOptions) },
-    { field: 'unqualifiedHandling', title: '不合格处理', width: 140, editRender: inputEditRender() },
-    { field: 'reportDefectPosition', title: '缺陷位置', width: 120, editRender: inputEditRender() },
-    { field: 'reportDefectNature', title: '缺陷性质', width: 120, editRender: inputEditRender() },
-    { field: 'reportDefectLength', title: '缺陷长度', width: 100, editRender: { name: '$input', props: { type: 'number' } } },
-    { field: 'unqualifiedDefectType', title: '不合格缺陷类型', width: 140, editRender: inputEditRender() },
-    { field: 'remark', title: '备注', width: 150, editRender: inputEditRender() },
-    { field: 'inspectorName', title: '检测人员', width: 100, editRender: inputEditRender() },
-    { field: 'boxNo', title: '箱号', width: 100, editRender: inputEditRender() },
-    { field: 'filmLength', title: '底片长度', width: 100, editRender: { name: '$input', props: { type: 'number' } } },
-    { field: 'filmCount', title: '底片张数', width: 90, editRender: { name: '$input', props: { type: 'integer', min: 0 } } },
-    { field: 'levelI', title: 'Ⅰ级', width: 65, editRender: { name: '$input', props: { type: 'integer', min: 0 } } },
-    { field: 'levelIi', title: 'Ⅱ级', width: 65, editRender: { name: '$input', props: { type: 'integer', min: 0 } } },
-    { field: 'levelIii', title: 'Ⅲ级', width: 65, editRender: { name: '$input', props: { type: 'integer', min: 0 } } },
-    { field: 'levelIv', title: 'Ⅳ级', width: 65, editRender: { name: '$input', props: { type: 'integer', min: 0 } } },
-    { field: 'defectAction', title: '缺陷位置', width: 90, fixed: 'right', slots: { default: 'defect_edit' } },
-    { field: 'operate', title: '操作', width: 80, fixed: 'right', slots: { default: 'operate' } },
-  ]
-  return base
-})
-
-// Data columns (excluding action columns)
-const dataColumns = computed(() =>
-  columns.value.filter((c) => c.field && c.field !== 'defectAction' && c.field !== 'operate')
+// Convert to jspreadsheet column format
+const jsColumns = computed(() =>
+  columnDefs.map((col) => ({
+    name: col.field,
+    title: col.title,
+    width: col.width,
+    type: col.type === 'calendar' ? 'calendar' :
+          col.type === 'dropdown' ? 'dropdown' :
+          col.type === 'numeric' ? 'numeric' : 'text',
+    source: col.source || undefined,
+    mask: col.mask || undefined,
+  }))
 )
 
-// Visible column keys for column customization (default: show most-used)
-const visibleColumns = ref(dataColumns.value.map((c) => c.field))
+// ─── Filter state ───
+const filterMethod = ref('')
+const filterKeyword = ref('')
 
-function updateColumnVisibility(keys) {
-  columns.value.forEach((col) => {
-    if (col.field && col.field !== 'defectAction' && col.field !== 'operate') {
-      col.visible = keys.includes(col.field)
-    }
-  })
-}
-
-// Edit config — row mode for Excel-like experience
-const editConfig = reactive({
-  trigger: 'click',
-  mode: 'row',
-  showIcon: false,
-  autoClear: false,
-  showStatus: true,
-})
-
-// Row-level validation
-const editRules = ref({
-  weldNo: [{ required: true, message: '焊口编号不能为空' }],
-  inspectionMethod: [{ required: true, message: '请选择检测方法' }],
-})
+// ─── jspreadsheet instance ───
+const spreadsheetEl = ref(null)
+let worksheet = null
+let tableData = []       // our source of truth: array of row objects
+let saveTimer = null
+let dirtyRowIndices = new Set()
+let isInternalUpdate = false  // flag to prevent onchange loops during setData
+let ignoreNextChanges = false // skip onchange during programmatic updates
 
 // ─── Data loading ───
 async function loadProject() {
@@ -133,24 +107,25 @@ async function loadProject() {
   }
 }
 
-async function loadData() {
-  loading.value = true
+async function loadData(silent = false) {
+  if (!silent) loading.value = true
   try {
-    const params = { projectId: projectId.value, size: 10000 }
+    const params = { projectId: projectId.value, size: 100000 }
     if (filterMethod.value) params.method = filterMethod.value
     if (filterKeyword.value) params.keyword = filterKeyword.value
     const res = await inspectionApi.list(params)
     if (res?.data) {
-      tableData.value = (res.data.records || []).map((row) => ({
+      tableData = (res.data.records || []).map((row) => ({
         ...row,
-        // Parse defectPositions if it's a JSON string
         _defectPositions: tryParseJson(row.defectPositions),
       }))
+    } else {
+      tableData = []
     }
+    refreshSheet()
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
-  ensureEmptyRow()
 }
 
 function tryParseJson(val) {
@@ -159,91 +134,229 @@ function tryParseJson(val) {
   try { return JSON.parse(val) } catch { return [] }
 }
 
-// ─── CRUD operations (row mode: save on row leave) ───
-async function handleEditActived({ row }) {
-  if (!row) return
-  // Set defaults for new rows
-  if (!row.projectId) row.projectId = projectId.value
-  if (!row.buDept) row.buDept = project.value?.buName || ''
-  if (!row.projectName) row.projectName = project.value?.projectName || ''
-  if (!row.unitProjectName) row.unitProjectName = project.value?.unitProjectName || ''
-  if (!row.constructionUnit) row.constructionUnit = project.value?.constructionUnit || ''
+// ─── Initialize / refresh the spreadsheet ───
+function getRowData(rowObj) {
+  return columnDefs.map((col) => {
+    const val = rowObj[col.field]
+    if (val == null) return ''
+    if (col.field === 'inspectionDate' || col.field === 'instructionDate') {
+      return typeof val === 'string' ? val.substring(0, 10) : val
+    }
+    return val
+  })
 }
 
-async function handleEditClosed({ row }) {
-  if (!row) return
-
-  // Skip if row is completely empty
-  const hasData = row.weldNo || row.inspectionMethod || row.inspectionDate
-  if (!hasData) {
-    // Remove empty row if it's not the only row
-    if (tableData.value.length > 1) {
-      const idx = tableData.value.indexOf(row)
-      if (idx > -1) tableData.value.splice(idx, 1)
-    }
-    return
+function buildSheetData() {
+  const data = tableData.map((row) => getRowData(row))
+  // Add 5 empty rows at the bottom (Excel-like)
+  const emptyRow = columnDefs.map(() => '')
+  for (let i = 0; i < 5; i++) {
+    data.push([...emptyRow])
   }
+  return data
+}
 
+function refreshSheet() {
+  if (!worksheet) return
+  isInternalUpdate = true
+  ignoreNextChanges = true
+  const data = buildSheetData()
+  worksheet.setData(data)
+  // Reset dirty tracking
+  dirtyRowIndices.clear()
+  nextTick(() => {
+    isInternalUpdate = false
+    ignoreNextChanges = false
+  })
+}
+
+function initSpreadsheet() {
+  if (!spreadsheetEl.value || worksheet) return
+
+  const data = buildSheetData()
+
+  // jspreadsheet() transforms the element and returns it
+  // The worksheet instance is then accessible via element.jspreadsheet
+  jspreadsheet(spreadsheetEl.value, {
+    data,
+    columns: jsColumns.value,
+    freezeColumns: 2,
+    minSpareRows: 0,
+    allowInsertRow: true,
+    allowDeleteRow: true,
+    allowInsertColumn: false,
+    allowDeleteColumn: false,
+    allowRenameColumn: false,
+    columnSorting: false,
+    columnDrag: false,
+    tableOverflow: true,
+    tableHeight: '100%',
+    defaultRowHeight: 26,
+    defaultColWidth: 90,
+    editable: true,
+    allowComments: false,
+    // Cell change handler (auto-save on change with debounce)
+    onchange: handleCellChange,
+    // When user deletes a row via right-click or delete key
+    ondeleterow: handleDeleteRow,
+    // When user inserts a row
+    oninsertrow: handleInsertRow,
+    // Flush saves when table loses focus
+    onblur: handleTableBlur,
+  })
+
+  worksheet = spreadsheetEl.value.jspreadsheet
+}
+
+// ─── Table blur handler — flush all pending saves ───
+function handleTableBlur(instance) {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  flushDirtyRows()
+}
+
+// ─── Cell change handler ───
+function handleCellChange(instance, cell, colIndex, rowIndex, newValue, oldValue) {
+  if (isInternalUpdate || ignoreNextChanges) return
+
+  const colIdx = typeof colIndex === 'string' ? parseInt(colIndex) : colIndex
+  const rowIdx = typeof rowIndex === 'string' ? parseInt(rowIndex) : rowIndex
+  const colDef = columnDefs[colIdx]
+  if (!colDef) return
+
+  // Mark row as dirty
+  dirtyRowIndices.add(rowIdx)
+
+  // Debounce save
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    flushDirtyRows()
+  }, 600)
+}
+
+function flushDirtyRows() {
+  const rows = [...dirtyRowIndices]
+  dirtyRowIndices.clear()
+  for (const rowIdx of rows) {
+    saveRow(rowIdx)
+  }
+}
+
+// ─── Build row object from spreadsheet row ───
+function buildRowFromSheet(rowIndex) {
+  if (!worksheet) return null
+  const rowData = worksheet.getRowData(rowIndex)
+  const obj = { projectId: projectId.value }
+  columnDefs.forEach((col, i) => {
+    let val = rowData[i]
+    if (val === '' || val === undefined || val === null) {
+      obj[col.field] = col.field === 'inspectionLength' || col.field === 'filmLength' ||
+        col.field === 'filmCount' || col.field.startsWith('level') ? null : ''
+    } else if (col.type === 'numeric') {
+      obj[col.field] = val === '' ? null : Number(val)
+    } else {
+      obj[col.field] = val
+    }
+  })
+  return obj
+}
+
+// ─── Save a single row ───
+let savingRows = new Set()
+
+async function saveRow(rowIndex) {
+  if (savingRows.has(rowIndex)) return
+
+  const rowData = buildRowFromSheet(rowIndex)
+  if (!rowData) return
+
+  // Skip completely empty rows
+  const hasContent = rowData.weldNo || rowData.inspectionMethod || rowData.inspectionDate
+  if (!hasContent) return
+
+  // Require at least weldNo for new records
+  if (!rowData.weldNo) return
+
+  savingRows.add(rowIndex)
   saving.value = true
+
   try {
-    if (row.id) {
-      // Update existing
-      await inspectionApi.update(row.id, { ...row, projectId: projectId.value })
-    } else if (row.weldNo) {
-      // Create new
-      const res = await inspectionApi.create({ ...row, projectId: projectId.value })
+    const existingRow = rowIndex < tableData.length ? tableData[rowIndex] : null
+
+    if (existingRow?.id) {
+      // Update existing record
+      await inspectionApi.update(existingRow.id, { ...rowData, projectId: projectId.value })
+      // Update local cache
+      Object.assign(existingRow, rowData)
+    } else {
+      // Create new record
+      const res = await inspectionApi.create({ ...rowData, projectId: projectId.value })
       if (res?.data) {
-        row.id = res.data.id
-        row.createTime = res.data.createTime
+        const newRow = { ...res.data, _defectPositions: [] }
+        if (rowIndex < tableData.length) {
+          tableData[rowIndex] = newRow
+        } else {
+          // Expand tableData to include this row
+          while (tableData.length <= rowIndex) tableData.push({})
+          tableData[rowIndex] = newRow
+        }
       }
     }
-  } catch {
-    // Error handled by interceptor
+  } catch (err) {
+    console.error('Save failed:', err)
   } finally {
-    saving.value = false
-  }
-
-  // Auto-append: if this was the last row, add a new empty row
-  const idx = tableData.value.indexOf(row)
-  if (idx === tableData.value.length - 1) {
-    ensureEmptyRow()
+    savingRows.delete(rowIndex)
+    saving.value = savingRows.size > 0
   }
 }
 
-// Ensure at least one empty row at the bottom
-function ensureEmptyRow() {
-  const lastRow = tableData.value[tableData.value.length - 1]
-  if (!lastRow || lastRow.id || lastRow.weldNo) {
-    tableData.value.push({
-      projectId: projectId.value,
-      buDept: project.value?.buName || '',
-      projectName: project.value?.projectName || '',
-      unitProjectName: project.value?.unitProjectName || '',
-      constructionUnit: project.value?.constructionUnit || '',
-    })
+// ─── Row insert handler ───
+function handleInsertRow(instance, rows) {
+  if (isInternalUpdate) return
+  // Sync tableData with inserted rows
+  // rows: [{ row: number, data: CellValue[] }]
+  for (const r of rows) {
+    if (r.row <= tableData.length) {
+      tableData.splice(r.row, 0, { projectId: projectId.value })
+    }
   }
 }
 
-// ─── Delete ───
-async function handleDelete(row) {
-  if (!row.id) {
-    const idx = tableData.value.indexOf(row)
-    if (idx > -1) tableData.value.splice(idx, 1)
-    ensureEmptyRow()
-    return
+// ─── Row delete handler ───
+async function handleDeleteRow(instance, removedRows) {
+  if (isInternalUpdate || ignoreNextChanges) return
+
+  // Process in descending order to maintain valid indices
+  const sorted = [...removedRows].sort((a, b) => b - a)
+  for (const rowIdx of sorted) {
+    if (rowIdx < tableData.length) {
+      const existingRow = tableData[rowIdx]
+      if (existingRow?.id) {
+        try {
+          await inspectionApi.remove(existingRow.id)
+        } catch {
+          // Error handled by interceptor
+        }
+      }
+      tableData.splice(rowIdx, 1)
+    }
   }
-  try {
-    await ElMessageBox.confirm(`确认删除焊口「${row.weldNo}」的检测数据？`, '删除确认', {
-      confirmButtonText: '确认删除',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
-    await inspectionApi.remove(row.id)
-    ElMessage.success('删除成功')
-    const idx = tableData.value.indexOf(row)
-    if (idx > -1) tableData.value.splice(idx, 1)
-    ensureEmptyRow()
-  } catch { /* cancelled */ }
+  ElMessage.success('删除成功')
+}
+
+// ─── Filter ───
+async function applyFilter() {
+  // Flush pending saves before reloading
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  flushDirtyRows()
+  // Wait for saves to complete
+  await nextTick()
+  loadData()
 }
 
 // ─── Export ───
@@ -251,7 +364,6 @@ async function handleExport() {
   try {
     loading.value = true
     const res = await inspectionApi.exportData({ projectId: projectId.value, method: filterMethod.value })
-    // The API returns blob
     const url = window.URL.createObjectURL(res)
     const link = document.createElement('a')
     link.href = url
@@ -260,8 +372,8 @@ async function handleExport() {
     window.URL.revokeObjectURL(url)
     ElMessage.success('导出成功')
   } catch {
-    // Try alternative - build xlsx from data
-    const res = await inspectionApi.list({ projectId: projectId.value, method: filterMethod.value, size: 10000 })
+    // Fallback: build from loaded data
+    const res = await inspectionApi.list({ projectId: projectId.value, method: filterMethod.value, size: 100000 })
     if (res?.data?.records) {
       exportToExcel(res.data.records)
     }
@@ -271,16 +383,18 @@ async function handleExport() {
 }
 
 function exportToExcel(records) {
-  const headers = columns.value.filter((c) => c.field).map((c) => c.title)
-  const fields = columns.value.filter((c) => c.field).map((c) => c.field)
-  const data = records.map((row) => fields.map((f) => {
-    const val = row[f]
-    if (f === 'defectPositions') return val || ''
-    if (f === 'inspectionDate' || f === 'instructionDate' || f === 'createTime') {
-      return val ? val.substring(0, 10) : ''
-    }
-    return val ?? ''
-  }))
+  const headers = columnDefs.map((c) => c.title)
+  const fields = columnDefs.map((c) => c.field)
+  const data = records.map((row) =>
+    fields.map((f) => {
+      const val = row[f]
+      if (f === 'defectPositions') return val || ''
+      if (f === 'inspectionDate' || f === 'instructionDate' || f === 'createTime') {
+        return val ? val.substring(0, 10) : ''
+      }
+      return val ?? ''
+    })
+  )
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, '检测数据')
@@ -290,6 +404,7 @@ function exportToExcel(records) {
 
 // ─── Import ───
 const importRef = ref(null)
+
 function handleImportClick() {
   importRef.value?.click()
 }
@@ -309,10 +424,10 @@ async function handleImportFile(e) {
       return
     }
 
-    // Map headers to field names
     const headers = jsonData[0]
     const fieldMap = buildFieldMap(headers)
-    const records = jsonData.slice(1)
+    const records = jsonData
+      .slice(1)
       .filter((row) => row.some((cell) => cell != null && cell !== ''))
       .map((row) => {
         const record = { projectId: projectId.value }
@@ -324,6 +439,11 @@ async function handleImportFile(e) {
         })
         return record
       })
+
+    if (records.length === 0) {
+      ElMessage.warning('未识别到有效数据')
+      return
+    }
 
     await ElMessageBox.confirm(
       `识别到 ${records.length} 条数据，确认导入？`,
@@ -343,10 +463,9 @@ async function handleImportFile(e) {
 
 function buildFieldMap(headers) {
   const mapping = {}
-  const colDefs = columns.value.filter((c) => c.field)
   headers.forEach((h) => {
     if (!h) return
-    const found = colDefs.find((c) => c.title === String(h).trim())
+    const found = columnDefs.find((c) => c.title === String(h).trim())
     if (found) mapping[h] = found.field
   })
   return mapping
@@ -357,13 +476,28 @@ function goBack() {
   router.push(`/project/${projectId.value}/detail`)
 }
 
-// ─── Defect positions editing ───
+// ─── Defect position editing ───
 const defectDialogVisible = ref(false)
-const defectEditRow = ref(null)
+const defectEditRowIndex = ref(-1)
 const defectForm = ref([])
 
-function openDefectEditor(row) {
-  defectEditRow.value = row
+function openDefectEditor() {
+  if (!worksheet) return
+  const selected = worksheet.getSelected()
+  if (!selected || selected.length === 0) {
+    ElMessage.warning('请先在表格中选中要编辑缺陷的行')
+    return
+  }
+  // getSelected() returns [{ element, x, y }] — x=col, y=row
+  const rowIdx = selected[0].y
+  if (rowIdx >= tableData.length) {
+    ElMessage.warning('请选择已有数据的行')
+    return
+  }
+  const row = tableData[rowIdx]
+  if (!row) return
+
+  defectEditRowIndex.value = rowIdx
   defectForm.value = Array.from({ length: 15 }, (_, i) => {
     const existing = row._defectPositions?.find((d) => d.pos === i + 1)
     return {
@@ -378,25 +512,77 @@ function openDefectEditor(row) {
 }
 
 async function saveDefects() {
-  if (!defectEditRow.value) return
+  if (defectEditRowIndex.value < 0 || defectEditRowIndex.value >= tableData.length) return
+  const row = tableData[defectEditRowIndex.value]
+  if (!row) return
+
   const valid = defectForm.value.filter((d) => d.defect || d.level || d.other)
-  defectEditRow.value._defectPositions = valid
-  defectEditRow.value.defectPositions = JSON.stringify(valid)
+  row._defectPositions = valid
+  row.defectPositions = JSON.stringify(valid)
   defectDialogVisible.value = false
-  // Save row via API
-  saving.value = true
-  try {
-    if (defectEditRow.value.id) {
-      await inspectionApi.update(defectEditRow.value.id, { ...defectEditRow.value, projectId: projectId.value })
-    }
-  } catch { /* handled by interceptor */ }
-  finally { saving.value = false }
+
+  if (row.id) {
+    saving.value = true
+    try {
+      await inspectionApi.update(row.id, { defectPositions: row.defectPositions, projectId: projectId.value })
+    } catch { /* handled by interceptor */ }
+    finally { saving.value = false }
+  }
 }
 
-// ─── Init ───
+// ─── Delete selected row ───
+async function handleDeleteSelected() {
+  if (!worksheet) return
+  const selected = worksheet.getSelected()
+  if (!selected || selected.length === 0) {
+    ElMessage.warning('请先选中要删除的行')
+    return
+  }
+  const rowIdx = selected[0].y
+  if (rowIdx >= tableData.length) {
+    ElMessage.warning('无法删除空行')
+    return
+  }
+  const row = tableData[rowIdx]
+  if (!row?.id) {
+    ElMessage.warning('该行尚未保存')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除焊口「${row.weldNo}」的检测数据？`, '删除确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await inspectionApi.remove(row.id)
+    ElMessage.success('删除成功')
+    tableData.splice(rowIdx, 1)
+    refreshSheet()
+  } catch { /* cancelled */ }
+}
+
+// ─── Lifecycle ───
 onMounted(async () => {
   await loadProject()
   await loadData()
+  await nextTick()
+  initSpreadsheet()
+})
+
+onBeforeUnmount(() => {
+  // Flush pending saves
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    flushDirtyRows()
+  }
+  // Destroy spreadsheet
+  if (worksheet) {
+    try {
+      // jspreadsheet doesn't have a destroy method, but we can clean up
+      worksheet = null
+    } catch { /* ignore */ }
+  }
 })
 </script>
 
@@ -413,7 +599,7 @@ onMounted(async () => {
               {{ project?.projectCode }}
             </el-tag>
           </h2>
-          <p class="page-subtitle">点击行进入编辑 · 离开行自动保存 · Tab 切换单元格 · 末行自动追加</p>
+          <p class="page-subtitle">点击单元格直接编辑 · Tab/Enter 导航 · 自动保存 · Ctrl+C/V 复制粘贴</p>
         </div>
       </div>
       <div class="header-actions">
@@ -453,90 +639,14 @@ onMounted(async () => {
         <el-button :icon="Upload" @click="handleImportClick">导入Excel</el-button>
         <input ref="importRef" type="file" accept=".xlsx,.xls" style="display: none" @change="handleImportFile" />
         <el-button :icon="Download" @click="handleExport">导出Excel</el-button>
-        <el-popover placement="bottom-end" :width="300" trigger="click">
-          <template #reference>
-            <el-button :icon="Setting" circle />
-          </template>
-          <div class="column-settings">
-            <p class="settings-title">显示列</p>
-            <el-checkbox-group v-model="visibleColumns" @change="updateColumnVisibility">
-              <div v-for="col in dataColumns" :key="col.field" class="column-check-item">
-                <el-checkbox :label="col.field" :value="col.field">
-                  {{ col.title }}
-                </el-checkbox>
-              </div>
-            </el-checkbox-group>
-          </div>
-        </el-popover>
+        <el-button :icon="Grid" @click="openDefectEditor">编辑缺陷</el-button>
+        <el-button :icon="Delete" type="danger" plain @click="handleDeleteSelected">删除行</el-button>
       </div>
     </div>
 
-    <!-- Vxe Table -->
-    <div class="table-wrap" v-loading="loading">
-      <vxe-grid
-        v-bind="$attrs"
-        :data="tableData"
-        :columns="columns"
-        :edit-config="editConfig"
-        :edit-rules="editRules"
-        :column-config="{ resizable: true }"
-        height="100%"
-        :row-config="{ isHover: true }"
-        :toolbar-config="{ enabled: false }"
-        :custom-config="{ storage: true }"
-        size="mini"
-        stripe
-        border
-        show-overflow
-        @edit-actived="handleEditActived"
-        @edit-closed="handleEditClosed"
-      >
-        <!-- Action column slot -->
-        <template #defect_edit_default="{ row }">
-          <el-button link type="warning" :icon="Grid" size="small" @click="openDefectEditor(row)">
-            编辑
-          </el-button>
-        </template>
-
-        <template #operate_default="{ row }">
-          <div class="action-cell">
-            <el-button link type="danger" :icon="Delete" size="small" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </div>
-        </template>
-
-        <!-- Inspection method render -->
-        <template #inspectionMethod_default="{ row }">
-          <el-tag
-            :type="row.inspectionMethod === 'RT' ? 'danger' : row.inspectionMethod === 'UT' ? 'primary' : 'success'"
-            size="small"
-            effect="dark"
-          >
-            {{ row.inspectionMethod || '-' }}
-          </el-tag>
-        </template>
-
-        <!-- Conclusion render -->
-        <template #inspectionConclusion_default="{ row }">
-          <el-tag
-            :type="row.inspectionConclusion === '合格' ? 'success' : 'danger'"
-            size="small"
-            effect="light"
-          >
-            {{ row.inspectionConclusion || '-' }}
-          </el-tag>
-        </template>
-
-        <!-- Date render -->
-        <template #inspectionDate_default="{ row }">
-          {{ row.inspectionDate ? row.inspectionDate.substring(0, 10) : '-' }}
-        </template>
-
-        <template #instructionDate_default="{ row }">
-          {{ row.instructionDate ? row.instructionDate.substring(0, 10) : '-' }}
-        </template>
-      </vxe-grid>
+    <!-- Jspreadsheet container -->
+    <div class="sheet-wrap" v-loading="loading">
+      <div ref="spreadsheetEl" class="spreadsheet-container"></div>
     </div>
 
     <!-- Defect Position Dialog -->
@@ -602,7 +712,7 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
@@ -613,7 +723,7 @@ onMounted(async () => {
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
@@ -653,7 +763,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 8px 0;
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 8px;
@@ -666,57 +776,83 @@ onMounted(async () => {
   gap: 8px;
 }
 
-/* Table — fill viewport */
-.table-wrap {
+/* Spreadsheet container */
+.sheet-wrap {
   flex: 1;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  background: #fff;
-  border: 1px solid var(--color-border);
   min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #fff;
 }
 
-.table-wrap :deep(.vxe-grid) {
+.spreadsheet-container {
+  width: 100%;
   height: 100%;
 }
 
-.table-wrap :deep(.vxe-table) {
-  border-radius: var(--radius-md);
+/* Override jspreadsheet styles for better integration */
+.sheet-wrap :deep(table) {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 13px;
 }
 
-.table-wrap :deep(.vxe-table .vxe-body--column) {
+.sheet-wrap :deep(td) {
   padding: 2px 4px;
-  font-size: 13px;
 }
 
-.table-wrap :deep(.vxe-table .vxe-header--column) {
+.sheet-wrap :deep(thead td) {
+  background: #f0f0f0 !important;
+  font-weight: 600;
   font-size: 12px;
-  font-weight: 600;
-  background: var(--color-bg);
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  color: #333;
+  text-align: center;
+  padding: 4px 2px;
 }
 
-.action-cell {
-  display: flex;
-  gap: 4px;
+.sheet-wrap :deep(thead td:first-child),
+.sheet-wrap :deep(tbody td:first-child) {
+  text-align: center;
+  background: #f5f5f5;
+  color: #888;
+  font-size: 11px;
+  min-width: 30px;
+  width: 30px;
 }
 
-/* Column settings */
-.column-settings {
-  max-height: 400px;
-  overflow-y: auto;
+.sheet-wrap :deep(tbody tr:nth-child(even) td) {
+  background-color: #fafbfc;
 }
 
-.settings-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 8px;
+.sheet-wrap :deep(.jspreadsheet) {
+  border: none !important;
 }
 
-.column-check-item {
-  padding: 2px 0;
+.sheet-wrap :deep(.jspreadsheet select),
+.sheet-wrap :deep(.jspreadsheet input) {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Green selection like Excel */
+.sheet-wrap :deep(.jspreadsheet .highlight) {
+  background-color: #e8f0fe !important;
+}
+
+.sheet-wrap :deep(.jspreadsheet .highlight-top) {
+  border-top: 2px solid #217346 !important;
+}
+
+.sheet-wrap :deep(.jspreadsheet .highlight-bottom) {
+  border-bottom: 2px solid #217346 !important;
+}
+
+.sheet-wrap :deep(.jspreadsheet .highlight-left) {
+  border-left: 2px solid #217346 !important;
+}
+
+.sheet-wrap :deep(.jspreadsheet .highlight-right) {
+  border-right: 2px solid #217346 !important;
 }
 </style>
