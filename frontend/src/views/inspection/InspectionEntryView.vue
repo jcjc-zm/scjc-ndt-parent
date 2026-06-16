@@ -165,8 +165,31 @@ function refreshSheet() {
   })
 }
 
+// ─── Infinite scroll: auto-append rows when user scrolls near bottom ───
+let scrollContainer = null
+let infiniteScrollPending = false
+
+function onSheetScroll() {
+  if (!scrollContainer || !worksheet || infiniteScrollPending) return
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer
+  // When within 150px of the bottom, add more rows
+  if (scrollTop + clientHeight >= scrollHeight - 150) {
+    infiniteScrollPending = true
+    isInternalUpdate = true
+    try {
+      worksheet.insertRow(200)
+    } catch { /* ignore */ }
+    isInternalUpdate = false
+    infiniteScrollPending = false
+  }
+}
+
 function initSpreadsheet() {
   if (!spreadsheetEl.value || worksheet) return
+
+  // Fill initial viewport: enough spare rows so table exceeds container height
+  const containerH = spreadsheetEl.value.parentElement?.clientHeight || 600
+  const viewportRows = Math.max(20, Math.ceil(containerH / ROW_HEIGHT) + 10)
 
   try {
     jspreadsheet(spreadsheetEl.value, {
@@ -174,7 +197,7 @@ function initSpreadsheet() {
         data: buildSheetData(),
         columns: jsColumns.value,
         freezeColumns: 2,
-        minSpareRows: 500,
+        minSpareRows: viewportRows,
         allowInsertRow: true,
         allowDeleteRow: true,
         allowInsertColumn: false,
@@ -194,10 +217,16 @@ function initSpreadsheet() {
       }]
     })
 
-    // v5 returns JspreadsheetInstance with .current (array of worksheets)
+    // Get worksheet instance
     const instance = spreadsheetEl.value.jspreadsheet
     if (instance) {
       worksheet = instance.current ? instance.current[0] : instance
+    }
+
+    // Set up infinite scroll listener on the scroll container (.sheet-wrap)
+    scrollContainer = spreadsheetEl.value.parentElement
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', onSheetScroll, { passive: true })
     }
   } catch (err) {
     console.error('jspreadsheet init failed:', err)
@@ -577,6 +606,10 @@ onBeforeUnmount(() => {
     flushDirtyRows()
   }
   window.removeEventListener('resize', handleResize)
+  if (scrollContainer) {
+    scrollContainer.removeEventListener('scroll', onSheetScroll)
+    scrollContainer = null
+  }
   // Clean up
   worksheet = null
   if (spreadsheetEl.value) {
