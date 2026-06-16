@@ -149,31 +149,22 @@ function getRowData(rowObj) {
 const ROW_HEIGHT = 26
 const HEADER_HEIGHT = 30
 
-function calcVisibleRows() {
+function calcViewportRows() {
   const container = spreadsheetEl.value?.parentElement
-  if (!container || !container.clientHeight) return 30
+  if (!container || !container.clientHeight) return 25
   return Math.floor((container.clientHeight - HEADER_HEIGHT) / ROW_HEIGHT)
 }
 
+// Only pass real data (no extra empty rows — minSpareRows handles that)
 function buildSheetData() {
-  const data = tableData.map((row) => getRowData(row))
-  // Add enough empty rows to fill the viewport (like Excel)
-  const visibleRows = calcVisibleRows()
-  const emptyNeeded = Math.max(5, visibleRows - data.length)
-  const emptyRow = columnDefs.map(() => '')
-  for (let i = 0; i < emptyNeeded; i++) {
-    data.push([...emptyRow])
-  }
-  return data
+  return tableData.map((row) => getRowData(row))
 }
 
 function refreshSheet() {
   if (!worksheet) return
   isInternalUpdate = true
   ignoreNextChanges = true
-  const data = buildSheetData()
-  worksheet.setData(data)
-  // Reset dirty tracking
+  worksheet.setData(buildSheetData())
   dirtyRowIndices.clear()
   nextTick(() => {
     isInternalUpdate = false
@@ -184,16 +175,18 @@ function refreshSheet() {
 function initSpreadsheet() {
   if (!spreadsheetEl.value || worksheet) return
 
-  const data = buildSheetData()
+  const containerHeight = spreadsheetEl.value.parentElement?.clientHeight || 600
+  // minSpareRows: always show this many empty rows beyond data → fills viewport
+  const spareRows = Math.max(10, calcViewportRows())
 
   try {
     // jspreadsheet v5 expects options wrapped in worksheets array
     jspreadsheet(spreadsheetEl.value, {
       worksheets: [{
-        data,
+        data: buildSheetData(),
         columns: jsColumns.value,
         freezeColumns: 2,
-        minSpareRows: 0,
+        minSpareRows: spareRows,
         allowInsertRow: true,
         allowDeleteRow: true,
         allowInsertColumn: false,
@@ -201,18 +194,15 @@ function initSpreadsheet() {
         allowRenameColumn: false,
         columnSorting: false,
         columnDrag: false,
-        tableOverflow: false,
-        defaultRowHeight: 26,
+        tableOverflow: true,
+        tableHeight: containerHeight + 'px',
+        defaultRowHeight: ROW_HEIGHT,
         defaultColWidth: 90,
         editable: true,
         allowComments: false,
-        // Cell change handler (auto-save on change with debounce)
         onchange: handleCellChange,
-        // When user deletes a row via right-click or delete key
         ondeleterow: handleDeleteRow,
-        // When user inserts a row
         oninsertrow: handleInsertRow,
-        // Flush saves when table loses focus
         onblur: handleTableBlur,
       }]
     })
@@ -820,13 +810,13 @@ function handleResize() {
   gap: 8px;
 }
 
-/* Spreadsheet container — fills viewport, shows both scrollbars */
+/* Spreadsheet container — jspreadsheet manages its own scrollbars */
 .sheet-wrap {
   flex: 1 1 auto;
   min-height: 300px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: auto;
+  overflow: hidden;
   background: #fff;
   position: relative;
 }
@@ -845,12 +835,9 @@ function handleResize() {
 }
 
 .spreadsheet-container {
+  width: 100%;
+  height: 100%;
   min-height: 300px;
-}
-
-/* jspreadsheet table fills to all columns naturally, parent handles scrolling */
-.sheet-wrap :deep(.jspreadsheet) {
-  min-width: max-content;
 }
 
 /* Override jspreadsheet styles for better integration */
