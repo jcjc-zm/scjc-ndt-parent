@@ -146,11 +146,22 @@ function getRowData(rowObj) {
   })
 }
 
+const ROW_HEIGHT = 26
+const HEADER_HEIGHT = 30
+
+function calcVisibleRows() {
+  const container = spreadsheetEl.value?.parentElement
+  if (!container || !container.clientHeight) return 30
+  return Math.floor((container.clientHeight - HEADER_HEIGHT) / ROW_HEIGHT)
+}
+
 function buildSheetData() {
   const data = tableData.map((row) => getRowData(row))
-  // Add 5 empty rows at the bottom (Excel-like)
+  // Add enough empty rows to fill the viewport (like Excel)
+  const visibleRows = calcVisibleRows()
+  const emptyNeeded = Math.max(5, visibleRows - data.length)
   const emptyRow = columnDefs.map(() => '')
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < emptyNeeded; i++) {
     data.push([...emptyRow])
   }
   return data
