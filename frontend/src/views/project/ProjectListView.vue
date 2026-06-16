@@ -2,9 +2,10 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { FolderOpened, Document } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { projectApi } from '@/api/project'
+import { PROJECT_STATUS_MAP } from '@/constants/projectStatus'
+import { formatDateTime } from '@/utils/format'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -30,12 +31,8 @@ const query = reactive({
   keyword: '',
 })
 
-// Status tag mapping
-const statusMap = {
-  PENDING: { label: '待启动', type: 'info' },
-  IN_PROGRESS: { label: '进行中', type: 'primary' },
-  COMPLETED: { label: '已完成', type: 'success' },
-}
+// Status tag mapping (imported from shared constants)
+const statusMap = PROJECT_STATUS_MAP
 
 // Load tree
 async function loadTree() {
@@ -121,13 +118,11 @@ function handleReset() {
 }
 
 // Pagination
-function handlePageChange(page) {
-  query.page = page
+function handlePageChange() {
   loadTable()
 }
 
-function handleSizeChange(size) {
-  query.size = size
+function handleSizeChange() {
   query.page = 1
   loadTable()
 }
@@ -277,7 +272,7 @@ onMounted(() => {
           </el-table-column>
           <el-table-column prop="createTime" label="创建时间" width="170" align="center">
             <template #default="{ row }">
-              {{ row.createTime?.replace('T', ' ').substring(0, 19) || '-' }}
+              {{ formatDateTime(row.createTime) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="240" align="center" fixed="right">
