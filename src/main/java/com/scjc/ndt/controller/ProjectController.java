@@ -24,9 +24,10 @@ public class ProjectController {
                                       @RequestParam(defaultValue = "20") Integer size,
                                       @RequestParam(required = false) String keyword,
                                       @RequestParam(required = false) String projectType,
+                                      @RequestParam(required = false) String buName,
                                       HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        return R.ok(projectService.listProjects(page, size, keyword, projectType, userId));
+        return R.ok(projectService.listProjects(page, size, keyword, projectType, buName, userId));
     }
 
     @GetMapping("/tree")

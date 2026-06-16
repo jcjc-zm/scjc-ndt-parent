@@ -8,7 +8,7 @@ import com.scjc.ndt.entity.SysProject;
 import java.util.List;
 
 public interface ProjectService {
-    IPage<SysProject> listProjects(Integer page, Integer size, String keyword, String projectType, Long userId);
+    IPage<SysProject> listProjects(Integer page, Integer size, String keyword, String projectType, String buName, Long userId);
     List<TreeNode> getTree(Long userId);
     SysProject create(ProjectRequest request, Long creatorId);
     SysProject update(Long id, ProjectRequest request);

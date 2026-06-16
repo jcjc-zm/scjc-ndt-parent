@@ -31,7 +31,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public IPage<SysProject> listProjects(Integer page, Integer size, String keyword,
-                                           String projectType, Long userId) {
+                                           String projectType, String buName, Long userId) {
         Page<SysProject> p = new Page<>(page, size);
         LambdaQueryWrapper<SysProject> q = new LambdaQueryWrapper<>();
 
@@ -53,6 +53,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         q.like(StringUtils.hasText(keyword), SysProject::getProjectName, keyword)
          .eq(StringUtils.hasText(projectType), SysProject::getProjectType, projectType)
+         .eq(StringUtils.hasText(buName), SysProject::getBuName, buName)
          .orderByDesc(SysProject::getCreateTime);
         return projectMapper.selectPage(p, q);
     }
