@@ -3,12 +3,19 @@
 -- 数据库: scjc_ndt (utf8mb4)
 -- ============================================================
 
+CREATE DATABASE IF NOT EXISTS `scjc_ndt`
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE `scjc_ndt`;
+
 -- ============================================================
 -- 一、部门/组织表
 -- ============================================================
 DROP TABLE IF EXISTS `user_project_rel`;
 DROP TABLE IF EXISTS `user_role_rel`;
 DROP TABLE IF EXISTS `signature_record`;
+DROP TABLE IF EXISTS `process_card`;
 DROP TABLE IF EXISTS `report_record`;
 DROP TABLE IF EXISTS `report_template`;
 DROP TABLE IF EXISTS `system_image`;
@@ -199,6 +206,42 @@ CREATE TABLE `inspection_record` (
     `level_iii` INT DEFAULT 0 COMMENT 'Ⅲ级缺陷数',
     `level_iv` INT DEFAULT 0 COMMENT 'Ⅳ级缺陷数',
 
+    -- RT射线检测专用字段 (胶片射线报告A)
+    `film_model` VARCHAR(100) DEFAULT NULL COMMENT '胶片型号',
+    `film_spec` VARCHAR(100) DEFAULT NULL COMMENT '胶片规格',
+    `lead_screen` VARCHAR(100) DEFAULT NULL COMMENT '铅增感屏',
+    `iqi_model` VARCHAR(100) DEFAULT NULL COMMENT '像质计型号',
+    `iqi_position` VARCHAR(200) DEFAULT NULL COMMENT '像质计位置',
+    `required_iqi` VARCHAR(50) DEFAULT NULL COMMENT '要求达到像质指数',
+    `source_type` VARCHAR(100) DEFAULT NULL COMMENT '源的种类',
+    `equipment_model` VARCHAR(100) DEFAULT NULL COMMENT '设备型号',
+    `tube_voltage` VARCHAR(50) DEFAULT NULL COMMENT '管电压(kV)',
+    `tube_current` VARCHAR(50) DEFAULT NULL COMMENT '管电流(mA)',
+    `focal_distance` VARCHAR(100) DEFAULT NULL COMMENT '焦点尺寸/焦距',
+    `exposure_time` VARCHAR(50) DEFAULT NULL COMMENT '曝光时间(min)',
+    `technique_type` VARCHAR(100) DEFAULT NULL COMMENT '透照方式',
+    `film_processing` VARCHAR(100) DEFAULT NULL COMMENT '胶片处理',
+    `development_time` VARCHAR(50) DEFAULT NULL COMMENT '显影时间(min)',
+    `development_temperature` VARCHAR(50) DEFAULT NULL COMMENT '显影温度(℃)',
+    `film_density_range` VARCHAR(50) DEFAULT NULL COMMENT '底片黑度范围',
+    `inspection_tech_level` VARCHAR(50) DEFAULT NULL COMMENT '检测技术等级',
+    `heat_treatment_status` VARCHAR(100) DEFAULT NULL COMMENT '热处理状态',
+    `inspection_timing` VARCHAR(100) DEFAULT NULL COMMENT '检测时机',
+    `pressure_equipment_category` VARCHAR(100) DEFAULT NULL COMMENT '承压设备类别',
+    `plate_thickness` VARCHAR(50) DEFAULT NULL COMMENT '板厚(mm)',
+    `iqi_value` VARCHAR(50) DEFAULT NULL COMMENT '像质指数',
+    `transillumination_length` VARCHAR(50) DEFAULT NULL COMMENT '一次透照长度(mm)',
+    `defect_details` VARCHAR(500) DEFAULT NULL COMMENT '缺陷情况描述',
+    `inspection_count` INT DEFAULT NULL COMMENT '检测数量(道)',
+    `repair_count` INT DEFAULT NULL COMMENT '返修数量(道)',
+    `reinspection_count` INT DEFAULT NULL COMMENT '复探数量(道)',
+    `extended_inspection_count` INT DEFAULT NULL COMMENT '扩探数量(道)',
+    `first_pass_yield` VARCHAR(20) DEFAULT NULL COMMENT '一次焊接合格率',
+    `final_yield` VARCHAR(20) DEFAULT NULL COMMENT '最终焊接合格率',
+    `project_code` VARCHAR(50) DEFAULT NULL COMMENT '工程编号(冗余,便于报告展示)',
+    `reviewer_name` VARCHAR(50) DEFAULT NULL COMMENT '审核人',
+    `technical_lead_name` VARCHAR(50) DEFAULT NULL COMMENT '检测单位项目技术负责人',
+
     `create_by` BIGINT DEFAULT NULL,
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -211,7 +254,54 @@ CREATE TABLE `inspection_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='检测数据表';
 
 -- ============================================================
--- 六、系统图片库
+-- 六、工艺卡表（RT射线检测工艺参数）
+-- ============================================================
+CREATE TABLE `process_card` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `project_id` BIGINT NOT NULL COMMENT '关联项目',
+    `process_card_no` VARCHAR(100) DEFAULT NULL COMMENT '工艺卡编号',
+    `specification` VARCHAR(100) DEFAULT NULL COMMENT '规格',
+    `technique_type` VARCHAR(100) DEFAULT NULL COMMENT '透照方式',
+    `iqi_value` VARCHAR(50) DEFAULT NULL COMMENT '像质指数',
+    `iqi_model` VARCHAR(100) DEFAULT NULL COMMENT '像质计型号',
+    `equipment_model` VARCHAR(100) DEFAULT NULL COMMENT '射线机型号',
+    `equipment_no` VARCHAR(100) DEFAULT NULL COMMENT '射线机编号',
+    `focal_spot_size` VARCHAR(50) DEFAULT NULL COMMENT '焦点尺寸(mm)',
+    `iqi_position` VARCHAR(200) DEFAULT NULL COMMENT '像质计位置',
+    `focal_distance` VARCHAR(100) DEFAULT NULL COMMENT '焦距(mm)',
+    `penetration_thickness` VARCHAR(50) DEFAULT NULL COMMENT '透照厚度(mm)',
+    `tube_voltage` VARCHAR(50) DEFAULT NULL COMMENT '管电压(KV)',
+    `exposure_time` VARCHAR(50) DEFAULT NULL COMMENT '曝光时间(min)',
+    `transillumination_length` VARCHAR(50) DEFAULT NULL COMMENT '一次透照长度(mm)',
+    `exposure_count` INT DEFAULT NULL COMMENT '曝光次数',
+    `film_spec` VARCHAR(100) DEFAULT NULL COMMENT '胶片规格(mm)',
+    `density_range` VARCHAR(50) DEFAULT NULL COMMENT '黑度范围',
+    `tube_current` VARCHAR(50) DEFAULT NULL COMMENT '管电流',
+    `film_type` VARCHAR(100) DEFAULT NULL COMMENT '胶片类型',
+    `work_film_distance` VARCHAR(50) DEFAULT NULL COMMENT '工件-胶片距离',
+    `tech_level` VARCHAR(50) DEFAULT NULL COMMENT '技术等级',
+    `heat_treatment_status` VARCHAR(100) DEFAULT NULL COMMENT '热处理状态',
+    `lead_screen` VARCHAR(100) DEFAULT NULL COMMENT '铅增感屏',
+    `source_type` VARCHAR(100) DEFAULT NULL COMMENT '源的种类',
+    `exposure_param` VARCHAR(50) DEFAULT NULL COMMENT '曝光参数(mA)',
+    `transillumination_param` VARCHAR(200) DEFAULT NULL COMMENT '透照参数',
+    `film_processing` VARCHAR(100) DEFAULT NULL COMMENT '胶片处理方式',
+    `development_time` VARCHAR(50) DEFAULT NULL COMMENT '显影时间',
+    `development_temperature` VARCHAR(50) DEFAULT NULL COMMENT '显影温度',
+    `source_activity` VARCHAR(50) DEFAULT NULL COMMENT '源活度',
+    `film_count` INT DEFAULT NULL COMMENT '片子张数',
+    `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    `create_by` BIGINT DEFAULT NULL,
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted` TINYINT DEFAULT 0,
+    PRIMARY KEY (`id`),
+    INDEX `idx_project_id` (`project_id`),
+    INDEX `idx_process_card_no` (`process_card_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工艺卡表（RT射线检测工艺参数）';
+
+-- ============================================================
+-- 七、系统图片库
 -- ============================================================
 CREATE TABLE `system_image` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -227,7 +317,7 @@ CREATE TABLE `system_image` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统图片库';
 
 -- ============================================================
--- 七、报告模板表
+-- 八、报告模板表
 -- ============================================================
 CREATE TABLE `report_template` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -246,7 +336,7 @@ CREATE TABLE `report_template` (
     INDEX `idx_method_type` (`method_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报告模板表';
 
--- 预设系统模板：射线检测报告（基于 PDF: JHCZT-WQ-RT-0073渡口河净化厂射线报告）
+-- 预设系统模板：射线检测报告（标准版）
 INSERT INTO `report_template` VALUES
 (1, NULL, '射线检测报告（标准版）', 'SYSTEM', 'RT',
  '基于渡口河净化厂射线报告首页+附页格式。包含首页信息区、底片布置图区、缺陷记录表、签字区；附页补充缺陷详细记录',
@@ -401,8 +491,15 @@ INSERT INTO `report_template` VALUES
  }',
  1, NOW(), NOW(), 0);
 
+-- 预设系统模板：胶片射线检测报告A (基于 WJ-11/WJ-12 格式)
+INSERT INTO `report_template` VALUES
+(2, NULL, '胶片射线报告A', 'SYSTEM', 'RT',
+ '基于 WJ-11 首页 + WJ-12 附页标准格式。包含工程信息、RT参数、透照参数、底片评定、签字区及附页焊缝明细',
+ '{"pageSize":"A4","pages":[{"name":"首页","sections":[{"type":"header","text":"射线检测报告","subtext":"报告编号：{reportNo}    共    页  第    页","style":{"fontSize":20,"fontWeight":"bold"}},{"type":"table","label":"工程及检测信息","rows":[[{"label":"工程名称","bind":"projectName"},{"label":"工程编号","bind":"projectCode"}],[{"label":"单位工程名称","bind":"unitProjectName"},{"label":"施工单位","bind":"constructionUnit"}],[{"label":"检测项目","bind":"inspectionItem"},{"label":"原始记录编号","bind":"instructionNo"}],[{"label":"材质规格","bind":"specification"},{"label":"承压设备类别","bind":"pressureEquipmentCategory"}],[{"label":"坡口形式","bind":"grooveType"},{"label":"热处理状态","bind":"heatTreatmentStatus"}],[{"label":"焊接方法","bind":"weldingMethod"},{"label":"检测时机","bind":"inspectionTiming"}]]},{"type":"table","label":"RT技术参数","rows":[[{"label":"胶片型号","bind":"filmModel"},{"label":"胶片规格","bind":"filmSpec"},{"label":"铅增感屏","bind":"leadScreen"},{"label":"像质计型号","bind":"iqiModel"}],[{"label":"像质计位置","bind":"iqiPosition"},{"label":"要求达到像质指数","bind":"requiredIqi"}],[{"label":"源的种类","bind":"sourceType"},{"label":"设备型号","bind":"equipmentModel"},{"label":"焦点尺寸／焦距","bind":"focalDistance"}],[{"label":"管电压","bind":"tubeVoltage"},{"label":"管电流","bind":"tubeCurrent"},{"label":"曝光时间","bind":"exposureTime"}],[{"label":"透照方式","bind":"techniqueType","colspan":4}],[{"label":"胶片处理","bind":"filmProcessing"},{"label":"显影时间","bind":"developmentTime"},{"label":"显影温度","bind":"developmentTemperature"},{"label":"底片黑度范围","bind":"filmDensityRange"}]]},{"type":"table","label":"检测结果统计","rows":[[{"label":"检测技术等级","bind":"inspectionTechLevel"},{"label":"检测比例","bind":"ratio"},{"label":"检测标准","bind":"inspectionStandard"},{"label":"合格级别","bind":"qualifiedLevel"}],[{"label":"检测数量（道）","bind":"inspectionCount"},{"label":"返修数量（道）","bind":"repairCount"},{"label":"一次焊接合格率","bind":"firstPassYield"}],[{"label":"复探数量（道）","bind":"reinspectionCount"},{"label":"扩探数量（道）","bind":"extendedInspectionCount"},{"label":"最终焊接合格率","bind":"finalYield"}]]},{"type":"image-area","label":"检测部位示意图"},{"type":"text","content":"检测结论：检测 ____ 道，合格 ____ 道，不合格 ____ 道。"},{"type":"signature","signatories":[{"label":"报告人","bind":"inspectorName"},{"label":"审核人","bind":"reviewerName"},{"label":"检测单位项目技术负责人","bind":"technicalLeadName"}]}]},{"name":"附页","sections":[{"type":"header","text":"射线检测报告（附页）","subtext":"报告编号：{reportNo}    共    页  第    页"},{"type":"table","label":"焊缝射线检测明细","headerRows":[[{"label":"单位工程名称","bind":"unitProjectName","colspan":4},{"label":"检测项目","bind":"inspectionItem","colspan":5}],[{"label":"序号","rowspan":2},{"label":"焊缝编号及底片编号","rowspan":2},{"label":"板厚（mm）","rowspan":2},{"label":"一次透照长度（mm）","rowspan":2},{"label":"像质指数","rowspan":2},{"label":"缺陷情况","colspan":2},{"label":"评定级别","rowspan":2},{"label":"备注","rowspan":2}],[{"label":"性质及长度（mm）"},{"label":"位置（mm）"}]],"columns":[{"label":"序号","field":"seq","width":50},{"label":"焊缝编号及底片编号","field":"weldNo","width":160},{"label":"板厚（mm）","field":"plateThickness","width":80},{"label":"一次透照长度（mm）","field":"transilluminationLength","width":100},{"label":"像质指数","field":"iqiValue","width":80},{"label":"性质及长度（mm）","field":"reportDefectNature","width":120},{"label":"位置（mm）","field":"reportDefectPosition","width":80},{"label":"评定级别","field":"resultLevel","width":80},{"label":"备注","field":"remark","width":100}],"dataRows":20},{"type":"signature","signatories":[{"label":"评片","bind":"inspectorName"},{"label":"审核","bind":"reviewerName"}]}]}]}',
+ 1, NOW(), NOW(), 0);
+
 -- ============================================================
--- 八、报告记录表
+-- 九、报告记录表
 -- ============================================================
 CREATE TABLE `report_record` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -424,7 +521,7 @@ CREATE TABLE `report_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报告记录表';
 
 -- ============================================================
--- 九、签字记录表
+-- 十、签字记录表
 -- ============================================================
 CREATE TABLE `signature_record` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Upload, Download, Search, Delete, Grid, Loading, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, Upload, Download, Search, Delete, Grid, Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { inspectionApi } from '@/api/inspection'
 import { projectApi } from '@/api/project'
@@ -19,6 +19,7 @@ const projectId = ref(Number(route.params.projectId))
 const project = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const dirtyCount = ref(0)  // number of rows with unsaved changes
 
 // ─── Column definitions ───
 const methodTypes = ['RT', 'UT', 'PT', 'MT', 'AUT', 'PA', 'TOFD', 'DR']
@@ -63,11 +64,54 @@ const columnDefs = [
   { field: 'inspectorName', title: '检测人员', width: 90, type: 'text' },
   { field: 'boxNo', title: '箱号', width: 90, type: 'text' },
   { field: 'filmLength', title: '底片长度', width: 90, type: 'numeric', mask: '#.##' },
-  { field: 'filmCount', title: '底片张数', width: 85, type: 'numeric', mask: '#' },
-  { field: 'levelI', title: 'Ⅰ级', width: 60, type: 'numeric', mask: '#' },
-  { field: 'levelIi', title: 'Ⅱ级', width: 60, type: 'numeric', mask: '#' },
-  { field: 'levelIii', title: 'Ⅲ级', width: 60, type: 'numeric', mask: '#' },
-  { field: 'levelIv', title: 'Ⅳ级', width: 60, type: 'numeric', mask: '#' },
+  { field: 'filmCount', title: '底片张数', width: 85, type: 'numeric' },
+  { field: 'levelI', title: 'Ⅰ级', width: 60, type: 'numeric' },
+  { field: 'levelIi', title: 'Ⅱ级', width: 60, type: 'numeric' },
+  { field: 'levelIii', title: 'Ⅲ级', width: 60, type: 'numeric' },
+  { field: 'levelIv', title: 'Ⅳ级', width: 60, type: 'numeric' },
+  // ── RT射线检测专用字段 (胶片射线报告A) ──
+  { field: 'filmModel', title: '胶片型号', width: 90, type: 'text' },
+  { field: 'filmSpec', title: '胶片规格', width: 90, type: 'text' },
+  { field: 'leadScreen', title: '铅增感屏', width: 90, type: 'text' },
+  { field: 'iqiModel', title: '像质计型号', width: 100, type: 'text' },
+  { field: 'iqiPosition', title: '像质计位置', width: 100, type: 'text' },
+  { field: 'requiredIqi', title: '要求像质指数', width: 100, type: 'text' },
+  { field: 'sourceType', title: '源的种类', width: 90, type: 'text' },
+  { field: 'equipmentModel', title: '设备型号', width: 100, type: 'text' },
+  { field: 'tubeVoltage', title: '管电压', width: 80, type: 'text' },
+  { field: 'tubeCurrent', title: '管电流', width: 80, type: 'text' },
+  { field: 'focalDistance', title: '焦点尺寸/焦距', width: 115, type: 'text' },
+  { field: 'exposureTime', title: '曝光时间', width: 85, type: 'text' },
+  { field: 'techniqueType', title: '透照方式', width: 100, type: 'text' },
+  { field: 'filmProcessing', title: '胶片处理', width: 90, type: 'text' },
+  { field: 'developmentTime', title: '显影时间', width: 85, type: 'text' },
+  { field: 'developmentTemperature', title: '显影温度', width: 85, type: 'text' },
+  { field: 'filmDensityRange', title: '底片黑度范围', width: 105, type: 'text' },
+  { field: 'inspectionTechLevel', title: '检测技术等级', width: 105, type: 'text' },
+  { field: 'heatTreatmentStatus', title: '热处理状态', width: 100, type: 'text' },
+  { field: 'inspectionTiming', title: '检测时机', width: 90, type: 'text' },
+  { field: 'pressureEquipmentCategory', title: '承压设备类别', width: 110, type: 'text' },
+  { field: 'plateThickness', title: '板厚(mm)', width: 85, type: 'text' },
+  { field: 'iqiValue', title: '像质指数', width: 80, type: 'text' },
+  { field: 'transilluminationLength', title: '一次透照长度', width: 105, type: 'text' },
+  { field: 'defectDetails', title: '缺陷情况', width: 130, type: 'text' },
+  { field: 'inspectionCount', title: '检测数量(道)', width: 100, type: 'numeric' },
+  { field: 'repairCount', title: '返修数量(道)', width: 100, type: 'numeric' },
+  { field: 'reinspectionCount', title: '复探数量(道)', width: 100, type: 'numeric' },
+  { field: 'extendedInspectionCount', title: '扩探数量(道)', width: 100, type: 'numeric' },
+  { field: 'firstPassYield', title: '一次合格率', width: 90, type: 'text' },
+  { field: 'finalYield', title: '最终合格率', width: 90, type: 'text' },
+  { field: 'projectCode', title: '工程编号', width: 120, type: 'text' },
+  { field: 'reviewerName', title: '审核人', width: 90, type: 'text' },
+  { field: 'technicalLeadName', title: '技术负责人', width: 100, type: 'text' },
+  // Defect position display columns (15 positions, read-only summary)
+  ...Array.from({ length: 15 }, (_, i) => ({
+    field: `_defectPos${i + 1}`,
+    title: `缺陷${i + 1}`,
+    width: 95,
+    type: 'text',
+    displayOnly: true,
+  })),
 ]
 
 // Convert to jspreadsheet column format
@@ -91,10 +135,10 @@ const filterKeyword = ref('')
 const spreadsheetEl = ref(null)
 let worksheet = null
 let tableData = []       // our source of truth: array of row objects
-let saveTimer = null
 let dirtyRowIndices = new Set()
-let isInternalUpdate = false  // flag to prevent onchange loops during setData
-let ignoreNextChanges = false // skip onchange during programmatic updates
+let isInternalUpdate = false  // flag to prevent onchange loops during programmatic updates
+let lastSelectedRow = -1  // track row clicked by user (survives focus loss)
+let lastSelectedCol = -1  // track col clicked by user
 
 // ─── Data loading ───
 async function loadProject() {
@@ -137,6 +181,15 @@ function tryParseJson(val) {
 // ─── Initialize / refresh the spreadsheet ───
 function getRowData(rowObj) {
   return columnDefs.map((col) => {
+    // Defect position display columns — derive from _defectPositions array
+    if (col.field.startsWith('_defectPos')) {
+      const posIdx = parseInt(col.field.replace('_defectPos', '')) - 1
+      const defs = rowObj._defectPositions || []
+      const d = defs.find((dp) => dp && (dp.pos === posIdx + 1))
+      if (!d) return ''
+      const parts = [d.defect, d.level, d.length].filter(Boolean)
+      return parts.join(' / ')
+    }
     const val = rowObj[col.field]
     if (val == null) return ''
     if (col.field === 'inspectionDate' || col.field === 'instructionDate') {
@@ -147,57 +200,79 @@ function getRowData(rowObj) {
 }
 
 const ROW_HEIGHT = 26
+const MIN_TOTAL_ROWS = 2000   // pre-pad data for Excel-like scroll range
+const SCROLL_EXTEND_ROWS = 200  // rows to add when nearing bottom
+const SCROLL_THRESHOLD = 400    // px from bottom to trigger extension
 
-// Only pass real data — minSpareRows auto-fills empty rows below
 function buildSheetData() {
-  return tableData.map((row) => getRowData(row))
+  const data = tableData.map((row) => getRowData(row))
+  // Pad with empty rows to create the illusion of infinite scroll.
+  // The spreadsheet always has at least MIN_TOTAL_ROWS rows so the
+  // vertical scrollbar has enough range from the very beginning.
+  while (data.length < MIN_TOTAL_ROWS) {
+    data.push(Array(columnDefs.length).fill(''))
+  }
+  return data
 }
 
 function refreshSheet() {
   if (!worksheet) return
   isInternalUpdate = true
-  ignoreNextChanges = true
   worksheet.setData(buildSheetData())
   dirtyRowIndices.clear()
   nextTick(() => {
     isInternalUpdate = false
-    ignoreNextChanges = false
   })
 }
 
-// ─── Infinite scroll: auto-append rows when user scrolls near bottom ───
-let scrollContainer = null
+// ─── Infinite scroll — poll-based (most reliable) + scroll event ───
 let infiniteScrollPending = false
+let scrollPollTimer = null
 
-function onSheetScroll() {
-  if (!scrollContainer || !worksheet || infiniteScrollPending) return
-  const { scrollTop, scrollHeight, clientHeight } = scrollContainer
-  // When within 150px of the bottom, add more rows
-  if (scrollTop + clientHeight >= scrollHeight - 150) {
+function tryExtendSheet() {
+  if (!worksheet || infiniteScrollPending) return
+  const wrapEl = spreadsheetEl.value?.parentElement
+  if (!wrapEl) return
+  if (wrapEl.scrollHeight - wrapEl.scrollTop - wrapEl.clientHeight < SCROLL_THRESHOLD) {
     infiniteScrollPending = true
     isInternalUpdate = true
     try {
-      worksheet.insertRow(200)
+      worksheet.insertRow(SCROLL_EXTEND_ROWS)
     } catch { /* ignore */ }
     isInternalUpdate = false
     infiniteScrollPending = false
   }
 }
 
+// scroll event handler (fast response)
+function onSheetScroll() {
+  tryExtendSheet()
+}
+
+// polling fallback (guaranteed to work regardless of event quirks)
+function startScrollPolling() {
+  stopScrollPolling()
+  scrollPollTimer = setInterval(tryExtendSheet, 400)
+}
+
+function stopScrollPolling() {
+  if (scrollPollTimer) {
+    clearInterval(scrollPollTimer)
+    scrollPollTimer = null
+  }
+}
+
 function initSpreadsheet() {
   if (!spreadsheetEl.value || worksheet) return
 
-  // Fill initial viewport: enough spare rows so table exceeds container height
-  const containerH = spreadsheetEl.value.parentElement?.clientHeight || 600
-  const viewportRows = Math.max(20, Math.ceil(containerH / ROW_HEIGHT) + 10)
-
   try {
-    jspreadsheet(spreadsheetEl.value, {
+    // jspreadsheet-ce v5 returns the instance directly; capture it
+    const spreadsheet = jspreadsheet(spreadsheetEl.value, {
       worksheets: [{
         data: buildSheetData(),
         columns: jsColumns.value,
         freezeColumns: 2,
-        minSpareRows: viewportRows,
+        minSpareRows: 0,
         allowInsertRow: true,
         allowDeleteRow: true,
         allowInsertColumn: false,
@@ -205,7 +280,7 @@ function initSpreadsheet() {
         allowRenameColumn: false,
         columnSorting: false,
         columnDrag: false,
-        tableOverflow: false,
+        tableOverflow: false,   // let .sheet-wrap handle scrolling natively
         defaultRowHeight: ROW_HEIGHT,
         defaultColWidth: 90,
         editable: true,
@@ -213,127 +288,240 @@ function initSpreadsheet() {
         onchange: handleCellChange,
         ondeleterow: handleDeleteRow,
         oninsertrow: handleInsertRow,
-        onblur: handleTableBlur,
       }]
     })
 
-    // Get worksheet instance
-    const instance = spreadsheetEl.value.jspreadsheet
-    if (instance) {
-      worksheet = instance.current ? instance.current[0] : instance
+    // jspreadsheet-ce v5: find the real worksheet instance.
+    // Priority: return value → .jss_container child → direct element property
+    let instance = null
+    if (spreadsheet && typeof spreadsheet.insertRow === 'function') {
+      instance = spreadsheet
+    } else if (spreadsheet?.current) {
+      instance = Array.isArray(spreadsheet.current) ? spreadsheet.current[0] : spreadsheet.current
+    }
+    if (!instance || typeof instance.insertRow !== 'function') {
+      const childInst = spreadsheetEl.value?.querySelector?.('.jss_container')?.jspreadsheet
+      if (childInst && typeof childInst.insertRow === 'function') {
+        instance = childInst
+      }
+    }
+    if (!instance || typeof instance.insertRow !== 'function') {
+      instance = spreadsheetEl.value?.jspreadsheet
     }
 
-    // Set up infinite scroll listener on the scroll container (.sheet-wrap)
-    scrollContainer = spreadsheetEl.value.parentElement
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', onSheetScroll, { passive: true })
+    if (instance && typeof instance.insertRow === 'function') {
+      worksheet = instance
     }
+
+    // Attach scroll listener + start polling on .sheet-wrap
+    // Also listen for user interaction to mark sheet as modified
+    nextTick(() => {
+      const wrapEl = spreadsheetEl.value?.parentElement
+      if (wrapEl) {
+        wrapEl.addEventListener('scroll', onSheetScroll, { passive: true })
+      }
+      // DOM-level interaction detection (onchange unreliable with tableOverflow:false)
+      const container = spreadsheetEl.value
+      if (container) {
+        container.addEventListener('click', onSheetClick, { passive: true })
+        container.addEventListener('keydown', onSheetKeyDown, { passive: true })
+      }
+      startScrollPolling()
+    })
   } catch (err) {
     console.error('jspreadsheet init failed:', err)
   }
 }
 
-// ─── Table blur handler — flush all pending saves ───
-function handleTableBlur(instance) {
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = null
-  }
-  flushDirtyRows()
-}
-
-// ─── Cell change handler ───
+// ─── Cell change handler — track that the sheet has been modified ───
 function handleCellChange(instance, cell, colIndex, rowIndex, newValue, oldValue) {
-  if (isInternalUpdate || ignoreNextChanges) return
-
-  const colIdx = typeof colIndex === 'string' ? parseInt(colIndex) : colIndex
+  if (isInternalUpdate) return
   const rowIdx = typeof rowIndex === 'string' ? parseInt(rowIndex) : rowIndex
-  const colDef = columnDefs[colIdx]
-  if (!colDef) return
-
-  // Mark row as dirty
   dirtyRowIndices.add(rowIdx)
-
-  // Debounce save
-  clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    flushDirtyRows()
-  }, 600)
+  dirtyCount.value = dirtyRowIndices.size
 }
 
-function flushDirtyRows() {
-  const rows = [...dirtyRowIndices]
-  dirtyRowIndices.clear()
-  for (const rowIdx of rows) {
-    saveRow(rowIdx)
+// ─── Track selected cell from DOM click (survives focus loss to toolbar buttons) ───
+function onSheetClick(e) {
+  if (!touched.value) touched.value = true
+  const td = e.target.closest('td')
+  if (!td) return
+  const tr = td.closest('tr')
+  if (!tr) return
+  const tbody = tr.closest('tbody')
+  if (!tbody) return
+  const rows = Array.from(tbody.querySelectorAll('tr'))
+  const cells = Array.from(tr.querySelectorAll('td'))
+  lastSelectedRow = rows.indexOf(tr)
+  lastSelectedCol = cells.indexOf(td) - 1  // -1 to skip row-number column
+
+  // Center viewport on the clicked cell (except near edges)
+  setTimeout(() => {
+    ensureActiveCellVisible()
+  }, 60)
+}
+const touched = ref(false)
+
+// ─── Auto-scroll to center active cell in viewport (like Excel) ───
+function ensureActiveCellVisible() {
+  if (!spreadsheetEl.value) return
+
+  // Try to get cell coordinates: first from worksheet selection, then from tracked click
+  let x, y
+  if (worksheet) {
+    const selected = worksheet.getSelected()
+    if (selected && selected.length > 0) {
+      x = selected[0].x
+      y = selected[0].y
+    }
+  }
+  if (x == null || y == null) {
+    x = lastSelectedCol
+    y = lastSelectedRow
+  }
+  if (x < 0 || y < 0) return
+
+  const table = spreadsheetEl.value.querySelector('table')
+  if (!table) return
+  const tbody = table.querySelector('tbody')
+  if (!tbody) return
+  const rows = tbody.querySelectorAll('tr')
+  if (y >= rows.length) return
+  const cells = rows[y].querySelectorAll('td')
+  if (x + 1 >= cells.length) return
+
+  const cell = cells[x + 1]
+  const wrapEl = spreadsheetEl.value.parentElement
+  if (!wrapEl) return
+
+  const cellRect = cell.getBoundingClientRect()
+  const wrapRect = wrapEl.getBoundingClientRect()
+
+  const cellCenterY = cellRect.top + cellRect.height / 2
+  const cellCenterX = cellRect.left + cellRect.width / 2
+  const wrapCenterY = wrapRect.top + wrapRect.height / 2
+  const wrapCenterX = wrapRect.left + wrapRect.width / 2
+
+  let targetTop = wrapEl.scrollTop + (cellCenterY - wrapCenterY)
+  let targetLeft = wrapEl.scrollLeft + (cellCenterX - wrapCenterX)
+
+  // 不能滚出内容区域边界（开头/结尾自然靠边）
+  const maxTop = wrapEl.scrollHeight - wrapEl.clientHeight
+  const maxLeft = wrapEl.scrollWidth - wrapEl.clientWidth
+  targetTop = Math.max(0, Math.min(targetTop, maxTop))
+  targetLeft = Math.max(0, Math.min(targetLeft, maxLeft))
+
+  wrapEl.scrollTop = targetTop
+  wrapEl.scrollLeft = targetLeft
+}
+
+function onSheetKeyDown(e) {
+  if (!touched.value) touched.value = true
+  const navKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter']
+  if (navKeys.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // Delay to let jspreadsheet update cell position before we query DOM
+    setTimeout(() => {
+      ensureActiveCellVisible()
+    }, 60)
   }
 }
 
 // ─── Build row object from spreadsheet row ───
+// Only includes editable columns (skips displayOnly columns like defect positions)
 function buildRowFromSheet(rowIndex) {
   if (!worksheet) return null
   const rowData = worksheet.getRowData(rowIndex)
+  if (!rowData) return null
   const obj = { projectId: projectId.value }
+  const intFields = ['filmCount', 'levelI', 'levelIi', 'levelIii', 'levelIv']
   columnDefs.forEach((col, i) => {
+    if (col.displayOnly) return  // skip display-only columns
     let val = rowData[i]
     if (val === '' || val === undefined || val === null) {
-      obj[col.field] = col.field === 'inspectionLength' || col.field === 'filmLength' ||
-        col.field === 'filmCount' || col.field.startsWith('level') ? null : ''
+      obj[col.field] = (col.field === 'inspectionLength' || col.field === 'filmLength' ||
+        col.field === 'filmCount' || col.field.startsWith('level')) ? null : ''
     } else if (col.type === 'numeric') {
-      obj[col.field] = val === '' ? null : Number(val)
+      let num = Number(val)
+      if (intFields.includes(col.field)) num = Math.round(num)
+      obj[col.field] = isNaN(num) ? null : num
     } else {
       obj[col.field] = val
+    }
+  })
+  // Normalize date fields: users may type "2026.06.17" or "2026/06/17"
+  const dateFields = ['instructionDate', 'inspectionDate']
+  dateFields.forEach((f) => {
+    if (obj[f] && typeof obj[f] === 'string') {
+      obj[f] = obj[f].replace(/\./g, '-').replace(/\//g, '-')
     }
   })
   return obj
 }
 
-// ─── Save a single row ───
-let savingRows = new Set()
+// ─── Save all data (like Excel — save everything on demand) ───
+async function handleSave() {
+  if (!worksheet || saving.value) return
 
-async function saveRow(rowIndex) {
-  if (savingRows.has(rowIndex)) return
-
-  const rowData = buildRowFromSheet(rowIndex)
-  if (!rowData) return
-
-  // Skip completely empty rows
-  const hasContent = rowData.weldNo || rowData.inspectionMethod || rowData.inspectionDate
-  if (!hasContent) return
-
-  // Require at least weldNo for new records
-  if (!rowData.weldNo) return
-
-  savingRows.add(rowIndex)
   saving.value = true
+  let saved = 0
+  let errors = 0
 
   try {
-    const existingRow = rowIndex < tableData.length ? tableData[rowIndex] : null
+    // Get ALL rows from the worksheet
+    const allData = worksheet.getData(false)
+    if (!allData || allData.length === 0) {
+      ElMessage.info('没有需要保存的数据')
+      return
+    }
 
-    if (existingRow?.id) {
-      // Update existing record
-      await inspectionApi.update(existingRow.id, { ...rowData, projectId: projectId.value })
-      // Update local cache
-      Object.assign(existingRow, rowData)
-    } else {
-      // Create new record
-      const res = await inspectionApi.create({ ...rowData, projectId: projectId.value })
-      if (res?.data) {
-        const newRow = { ...res.data, _defectPositions: [] }
-        if (rowIndex < tableData.length) {
-          tableData[rowIndex] = newRow
+    for (let rowIdx = 0; rowIdx < allData.length; rowIdx++) {
+      const rowData = buildRowFromSheet(rowIdx)
+      if (!rowData) continue
+
+      const hasContent = rowData.weldNo || rowData.inspectionMethod
+      if (!hasContent) continue
+      if (!rowData.weldNo) continue
+
+      try {
+        const existingRow = rowIdx < tableData.length ? tableData[rowIdx] : null
+
+        if (existingRow?.id) {
+          // Only update if data actually changed
+          await inspectionApi.update(existingRow.id, { ...rowData, projectId: projectId.value })
+          Object.assign(existingRow, rowData)
+          saved++
         } else {
-          // Expand tableData to include this row
-          while (tableData.length <= rowIndex) tableData.push({})
-          tableData[rowIndex] = newRow
+          const res = await inspectionApi.create({ ...rowData, projectId: projectId.value })
+          if (res?.data) {
+            const newRow = { ...res.data, _defectPositions: [] }
+            if (rowIdx < tableData.length) {
+              tableData[rowIdx] = newRow
+            } else {
+              while (tableData.length <= rowIdx) tableData.push({})
+              tableData[rowIdx] = newRow
+            }
+            saved++
+          }
         }
+      } catch (err) {
+        console.error('Save row ' + rowIdx + ' failed:', err)
+        errors++
       }
     }
-  } catch (err) {
-    console.error('Save failed:', err)
+
+    dirtyRowIndices.clear()
+    dirtyCount.value = 0
+    touched.value = false
+
+    if (errors > 0) {
+      ElMessage.warning(`保存完成：${saved} 条成功，${errors} 条失败`)
+    } else if (saved > 0) {
+      ElMessage.success(`已保存 ${saved} 条数据`)
+    } else {
+      ElMessage.info('数据无变化')
+    }
   } finally {
-    savingRows.delete(rowIndex)
-    saving.value = savingRows.size > 0
+    saving.value = false
   }
 }
 
@@ -351,7 +539,7 @@ function handleInsertRow(instance, rows) {
 
 // ─── Row delete handler ───
 async function handleDeleteRow(instance, removedRows) {
-  if (isInternalUpdate || ignoreNextChanges) return
+  if (isInternalUpdate) return
 
   // Process in descending order to maintain valid indices
   const sorted = [...removedRows].sort((a, b) => b - a)
@@ -373,14 +561,9 @@ async function handleDeleteRow(instance, removedRows) {
 
 // ─── Filter ───
 async function applyFilter() {
-  // Flush pending saves before reloading
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = null
+  if (touched.value) {
+    await handleSave()
   }
-  flushDirtyRows()
-  // Wait for saves to complete
-  await nextTick()
   loadData()
 }
 
@@ -508,13 +691,19 @@ const defectForm = ref([])
 
 function openDefectEditor() {
   if (!worksheet) return
-  const selected = worksheet.getSelected()
-  if (!selected || selected.length === 0) {
-    ElMessage.warning('请先在表格中选中要编辑缺陷的行')
+
+  // Try to get selected row: first from our tracked click, then from active selection
+  let rowIdx = lastSelectedRow
+  if (rowIdx < 0) {
+    const selected = worksheet.getSelected()
+    if (selected && selected.length > 0) {
+      rowIdx = selected[0].y
+    }
+  }
+  if (rowIdx < 0) {
+    ElMessage.warning('请先点击目标行中的任意单元格，再点击编辑缺陷')
     return
   }
-  // getSelected() returns [{ element, x, y }] — x=col, y=row
-  const rowIdx = selected[0].y
   if (rowIdx >= tableData.length) {
     ElMessage.warning('请选择已有数据的行')
     return
@@ -543,13 +732,26 @@ async function saveDefects() {
 
   const valid = defectForm.value.filter((d) => d.defect || d.level || d.other)
   row._defectPositions = valid
-  row.defectPositions = JSON.stringify(valid)
+  row.defectPositions = valid   // store as array, not JSON string (API expects List<DefectPosition>)
   defectDialogVisible.value = false
+
+  // Refresh defect display columns in the spreadsheet for this row
+  if (worksheet) {
+    const rowIdx = defectEditRowIndex.value
+    const firstDefectCol = columnDefs.findIndex((c) => c.field.startsWith('_defectPos'))
+    for (let i = 0; i < 15; i++) {
+      const colIdx = firstDefectCol + i
+      if (colIdx < 0) continue
+      const d = valid.find((dp) => dp && dp.pos === i + 1)
+      const text = d ? [d.defect, d.level, d.length].filter(Boolean).join(' / ') : ''
+      try { worksheet.setValue(rowIdx, colIdx, text) } catch { /* ignore */ }
+    }
+  }
 
   if (row.id) {
     saving.value = true
     try {
-      await inspectionApi.update(row.id, { defectPositions: row.defectPositions, projectId: projectId.value })
+      await inspectionApi.update(row.id, { defectPositions: valid, projectId: projectId.value })
     } catch { /* handled by interceptor */ }
     finally { saving.value = false }
   }
@@ -558,12 +760,19 @@ async function saveDefects() {
 // ─── Delete selected row ───
 async function handleDeleteSelected() {
   if (!worksheet) return
-  const selected = worksheet.getSelected()
-  if (!selected || selected.length === 0) {
-    ElMessage.warning('请先选中要删除的行')
+
+  // Try to get selected row: first from our tracked click, then from active selection
+  let rowIdx = lastSelectedRow
+  if (rowIdx < 0) {
+    const selected = worksheet.getSelected()
+    if (selected && selected.length > 0) {
+      rowIdx = selected[0].y
+    }
+  }
+  if (rowIdx < 0) {
+    ElMessage.warning('请先点击目标行中的任意单元格，再点击删除行')
     return
   }
-  const rowIdx = selected[0].y
   if (rowIdx >= tableData.length) {
     ElMessage.warning('无法删除空行')
     return
@@ -587,52 +796,52 @@ async function handleDeleteSelected() {
   } catch { /* cancelled */ }
 }
 
+// ─── Ctrl+S handler ───
+function onKeyDown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault()
+    handleSave()
+  }
+}
+
+// ─── Warn before leaving with unsaved data ───
+function onBeforeUnload(e) {
+  if (touched.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
 // ─── Lifecycle ───
 onMounted(async () => {
   await loadProject()
   await loadData()
-  // Wait for DOM to fully settle before initializing spreadsheet
   await nextTick()
   await nextTick()
   initSpreadsheet()
-  // Listen for resize to keep table height in sync
-  window.addEventListener('resize', handleResize)
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('beforeunload', onBeforeUnload)
 })
 
 onBeforeUnmount(() => {
-  // Flush pending saves
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    flushDirtyRows()
+  stopScrollPolling()
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('beforeunload', onBeforeUnload)
+  const wrapEl = spreadsheetEl.value?.parentElement
+  if (wrapEl) {
+    wrapEl.removeEventListener('scroll', onSheetScroll)
   }
-  window.removeEventListener('resize', handleResize)
-  if (scrollContainer) {
-    scrollContainer.removeEventListener('scroll', onSheetScroll)
-    scrollContainer = null
+  const container = spreadsheetEl.value
+  if (container) {
+    container.removeEventListener('click', onSheetClick)
+    container.removeEventListener('keydown', onSheetKeyDown)
   }
-  // Clean up
   worksheet = null
   if (spreadsheetEl.value) {
     spreadsheetEl.value.innerHTML = ''
   }
 })
 
-let resizeTimer = null
-function handleResize() {
-  clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(() => {
-    if (worksheet && spreadsheetEl.value?.parentElement) {
-      const h = spreadsheetEl.value.parentElement.clientHeight
-      if (h > 0) {
-        isInternalUpdate = true
-        try {
-          worksheet.setData(buildSheetData())
-        } catch { /* ignore */ }
-        isInternalUpdate = false
-      }
-    }
-  }, 200)
-}
 </script>
 
 <template>
@@ -648,15 +857,18 @@ function handleResize() {
               {{ project?.projectCode }}
             </el-tag>
           </h2>
-          <p class="page-subtitle">点击单元格直接编辑 · Tab/Enter 导航 · 自动保存 · Ctrl+C/V 复制粘贴</p>
+          <p class="page-subtitle">点击单元格直接编辑 · Tab/Enter 导航 · Ctrl+S 保存 · Ctrl+C/V 复制粘贴</p>
         </div>
       </div>
       <div class="header-actions">
-        <span class="save-indicator" v-if="saving">
+        <span class="save-indicator saving" v-if="saving">
           <el-icon class="is-loading"><Loading /></el-icon> 保存中...
         </span>
+        <span class="save-indicator unsaved" v-else-if="touched">
+          已修改，请保存
+        </span>
         <span class="save-indicator saved" v-else>
-          <el-icon><Check /></el-icon> 已自动保存
+          已保存
         </span>
       </div>
     </div>
@@ -685,11 +897,16 @@ function handleResize() {
         <el-button :icon="Search" @click="loadData">查询</el-button>
       </div>
       <div class="toolbar-right">
+        <el-button type="primary" :loading="saving" @click="handleSave">保存 (Ctrl+S)</el-button>
         <el-button :icon="Upload" @click="handleImportClick">导入Excel</el-button>
         <input ref="importRef" type="file" accept=".xlsx,.xls" style="display: none" @change="handleImportFile" />
         <el-button :icon="Download" @click="handleExport">导出Excel</el-button>
-        <el-button :icon="Grid" @click="openDefectEditor">编辑缺陷</el-button>
-        <el-button :icon="Delete" type="danger" plain @click="handleDeleteSelected">删除行</el-button>
+        <el-tooltip content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
+          <el-button :icon="Grid" @click="openDefectEditor">编辑缺陷</el-button>
+        </el-tooltip>
+        <el-tooltip content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
+          <el-button :icon="Delete" type="danger" plain @click="handleDeleteSelected">删除行</el-button>
+        </el-tooltip>
       </div>
     </div>
 
@@ -805,7 +1022,15 @@ function handleResize() {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.save-indicator.saving {
   color: var(--color-warning);
+}
+
+.save-indicator.unsaved {
+  color: var(--color-danger);
+  font-weight: 500;
 }
 
 .save-indicator.saved {
@@ -829,8 +1054,7 @@ function handleResize() {
   align-items: center;
   gap: 8px;
 }
-
-/* Spreadsheet — native browser scrollbars (bottom + right), fills viewport */
+/* .sheet-wrap is the native scroll container — both scrollbars always visible. */
 .sheet-wrap {
   flex: 1 1 auto;
   min-height: 300px;
@@ -866,6 +1090,12 @@ function handleResize() {
 
 .sheet-wrap :deep(td) {
   padding: 2px 4px;
+}
+
+.sheet-wrap :deep(thead) {
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .sheet-wrap :deep(thead td) {
@@ -921,5 +1151,28 @@ function handleResize() {
 
 .sheet-wrap :deep(.jspreadsheet .highlight-right) {
   border-right: 2px solid #217346 !important;
+}
+
+/* ─── Native scrollbar styling for .sheet-wrap (the scroll container) ─── */
+.sheet-wrap::-webkit-scrollbar {
+  width: 12px;   /* 垂直滚动条宽度 */
+  height: 18px;  /* 水平滚动条高度 — 加粗便于拖拽 */
+}
+
+.sheet-wrap::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sheet-wrap::-webkit-scrollbar-thumb {
+  background: #b0b0b0;
+  border-radius: 9px;
+}
+
+.sheet-wrap::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+.sheet-wrap::-webkit-scrollbar-corner {
+  background: #f1f1f1;
 }
 </style>

@@ -13,6 +13,7 @@ public interface ProjectService {
     SysProject create(ProjectRequest request, Long creatorId);
     SysProject update(Long id, ProjectRequest request);
     void updateStatus(Long id, String status);
+    void delete(Long id);
     SysProject getById(Long id);
     List<SysProject> getByBuName(String buName);
 }

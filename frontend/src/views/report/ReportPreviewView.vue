@@ -63,11 +63,19 @@ function getFieldValue(key) {
   const val = inspectionData.value[key]
   if (val == null || val === '') return '-'
   if (typeof val === 'string' && (val.includes('T') || val.includes('-'))) {
-    // Date field
     const d = val.substring(0, 10)
     if (d.match(/^\d{4}-\d{2}-\d{2}$/)) return d
   }
   return String(val)
+}
+
+function sectionStyle(style) {
+  if (!style) return {}
+  return {
+    fontSize: (style.fontSize || 16) + 'px',
+    fontWeight: style.fontWeight || 'bold',
+    textAlign: style.textAlign || 'center',
+  }
 }
 
 // Export PDF
@@ -154,8 +162,101 @@ onMounted(() => loadData())
 
         <el-divider />
 
+        <!-- Sections-based rendering (pages with tables) -->
+        <template v-if="layout?.pages">
+          <div v-for="(page, pi) in layout.pages" :key="pi" class="report-page">
+            <div v-if="pi > 0" class="page-break"></div>
+            <h2 v-if="page.name" class="page-name">{{ page.name }}</h2>
+
+            <div v-for="(section, si) in page.sections" :key="si" :class="'section-' + section.type">
+
+              <!-- header -->
+              <div v-if="section.type === 'header'" class="section-header" :style="sectionStyle(section.style)">
+                <div class="header-text">{{ section.text }}</div>
+                <div v-if="section.subtext" class="header-subtext">{{ section.subtext.replace('{reportNo}', report?.reportNo || '-') }}</div>
+              </div>
+
+              <!-- table -->
+              <div v-else-if="section.type === 'table'" class="section-table">
+                <div v-if="section.label" class="table-label">{{ section.label }}</div>
+                <!-- row-based table -->
+                <table v-if="section.rows" class="info-table">
+                  <tbody>
+                    <tr v-for="(row, ri) in section.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci"
+                          :colspan="cell.colspan || 1"
+                          :class="{ 'td-label': cell.label, 'td-value': !cell.label }">
+                        <template v-if="cell.label">{{ cell.label }}</template>
+                        <template v-if="cell.bind && cell.label">：{{ getFieldValue(cell.bind) }}</template>
+                        <template v-if="!cell.label">{{ cell.bind ? getFieldValue(cell.bind) : '' }}</template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <!-- column-based table (with optional headerRows) -->
+                <table v-else-if="section.columns" class="data-table">
+                  <colgroup>
+                    <col v-for="col in section.columns" :key="col.field"
+                         :style="{ width: col.width ? col.width + 'px' : 'auto' }">
+                  </colgroup>
+                  <thead>
+                    <tr v-for="(hrow, hi) in section.headerRows" :key="'hr'+hi">
+                      <th v-for="(hcell, hci) in hrow" :key="'hc'+hci"
+                          :colspan="hcell.colspan || 1"
+                          :rowspan="hcell.rowspan || 1"
+                          style="text-align:center;vertical-align:middle">
+                        {{ hcell.label }}<template v-if="hcell.bind">：{{ getFieldValue(hcell.bind) }}</template>
+                      </th>
+                    </tr>
+                  </thead>
+                  <thead v-if="!section.headerRows?.some(r => r.some(c => c.rowspan > 1))">
+                    <tr>
+                      <th v-for="col in section.columns" :key="col.field">
+                        {{ col.label }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="n in (section.dataRows || section.rows || 5)" :key="n">
+                      <td v-for="col in section.columns" :key="col.field">&nbsp;</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- image-area -->
+              <div v-else-if="section.type === 'image-area'" class="section-image"
+                   :style="{ minHeight: (section.height || 200) + 'px' }">
+                <div class="image-label">{{ section.label }}</div>
+                <div class="image-placeholder-box">
+                  <el-icon :size="48"><Picture /></el-icon>
+                  <span>（底片布置图 / 检测部位示意图）</span>
+                </div>
+              </div>
+
+              <!-- text -->
+              <div v-else-if="section.type === 'text'" class="section-text">
+                {{ section.content }}
+              </div>
+
+              <!-- signature -->
+              <div v-else-if="section.type === 'signature'" class="section-signature">
+                <div class="signature-row">
+                  <div v-for="sig in section.signatories" :key="sig.label" class="signature-item">
+                    <div class="sig-label">{{ sig.label }}</div>
+                    <div class="sig-value">{{ getFieldValue(sig.bind) || '　' }}</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-date">年　月　日</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </template>
+
         <!-- Layout-based rendering (if template has layout config) -->
-        <div v-if="layout?.fields?.length" class="report-layout" :style="{ position: 'relative', minHeight: '700px' }">
+        <div v-else-if="layout?.fields?.length" class="report-layout" :style="{ position: 'relative', minHeight: '700px' }">
           <div
             v-for="field in layout.fields"
             :key="field.id"
@@ -353,4 +454,77 @@ onMounted(() => loadData())
 .sign-label { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
 .sign-status { min-height: 50px; }
 .sign-time { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+
+/* ── Sections-based rendering ── */
+.report-page { margin-bottom: 24px; }
+.page-break { border-top: 2px dashed var(--color-border); margin: 32px 0; }
+.page-name { font-size: 14px; font-weight: 600; color: var(--color-text-secondary); text-align: center; margin: 0 0 16px; }
+
+.section-header { padding: 8px 0 16px; border-bottom: 2px solid #1e293b; margin-bottom: 16px; }
+.header-text { font-size: 20px; font-weight: 700; text-align: center; }
+.header-subtext { font-size: 12px; color: var(--color-text-secondary); text-align: right; margin-top: 4px; }
+
+.section-table { margin-bottom: 16px; }
+.table-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--color-text-primary); }
+
+.info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.info-table td {
+  border: 1px solid var(--color-border);
+  padding: 6px 8px;
+  line-height: 1.6;
+}
+.info-table .td-label {
+  background: #f8fafc;
+  font-weight: 600;
+  width: 120px;
+  white-space: nowrap;
+}
+.info-table .td-value { color: var(--color-text-primary); }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th, .data-table td {
+  border: 1px solid var(--color-border);
+  padding: 6px 8px;
+  text-align: center;
+}
+.data-table th { background: #f8fafc; font-weight: 600; }
+.data-table td { height: 28px; }
+
+.section-image {
+  border: 2px dashed #94a3b8;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+}
+.image-label { font-size: 13px; font-weight: 600; margin: 12px 0; }
+.image-placeholder-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-placeholder);
+  padding-bottom: 24px;
+}
+
+.section-text {
+  font-size: 14px;
+  line-height: 2;
+  padding: 8px 0;
+  font-weight: 500;
+}
+
+.section-signature { margin-top: 32px; }
+.signature-row { display: flex; gap: 24px; }
+.signature-item {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+}
+.sig-label { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.sig-value { font-size: 13px; min-height: 24px; color: var(--color-text-secondary); }
+.sig-line { border-bottom: 1px solid var(--color-text-primary); margin: 4px auto 8px; width: 80%; }
+.sig-date { font-size: 12px; color: var(--color-text-secondary); }
 </style>

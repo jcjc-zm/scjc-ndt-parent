@@ -45,10 +45,22 @@ const router = createRouter({
           meta: { title: '检测数据录入', icon: 'EditPen', hidden: true },
         },
         {
+          path: 'process-card',
+          name: 'ProcessCard',
+          component: () => import('@/views/process/ProcessCardView.vue'),
+          meta: { title: '工艺卡管理', icon: 'Document' },
+        },
+        {
           path: 'report',
           name: 'ReportList',
           component: () => import('@/views/report/ReportListView.vue'),
           meta: { title: '报告管理', icon: 'Document' },
+        },
+        {
+          path: 'template',
+          name: 'TemplateManage',
+          component: () => import('@/views/report/TemplateManageView.vue'),
+          meta: { title: '模板管理', icon: 'Notebook' },
         },
         {
           path: 'report/design/:id',

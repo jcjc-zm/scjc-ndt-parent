@@ -25,6 +25,12 @@ const menuItems = computed(() => {
       visible: true,
     },
     {
+      index: '/process-card',
+      title: '工艺卡管理',
+      icon: 'Document',
+      visible: true,
+    },
+    {
       index: '/approval',
       title: '签字审批',
       icon: 'Edit',
@@ -34,6 +40,12 @@ const menuItems = computed(() => {
       index: '/report',
       title: '报告管理',
       icon: 'Document',
+      visible: true,
+    },
+    {
+      index: '/template',
+      title: '模板管理',
+      icon: 'Notebook',
       visible: true,
     },
     {
@@ -61,8 +73,10 @@ const activeMenu = computed(() => {
   const { path } = route
   if (path.startsWith('/project')) return '/project'
   if (path.startsWith('/inspection')) return '/project'
+  if (path.startsWith('/process-card')) return '/process-card'
   if (path.startsWith('/report/design') || path.startsWith('/report/create') || path.startsWith('/report/preview'))
     return '/report'
+  if (path.startsWith('/template')) return '/template'
   if (path.startsWith('/approval')) return '/approval'
   if (path.startsWith('/user')) return '/user'
   if (path.startsWith('/system')) return '/system'

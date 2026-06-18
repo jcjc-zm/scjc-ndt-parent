@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { projectApi } from '@/api/project'
@@ -31,7 +31,16 @@ const rules = {
     { min: 2, max: 100, message: '项目名称长度为 2-100 个字符', trigger: 'blur' },
   ],
   projectType: [{ required: true, message: '请选择项目类型', trigger: 'change' }],
-  buName: [{ required: true, message: '请选择所属事业部', trigger: 'change' }],
+  buName: [{
+    validator: (_rule, value, callback) => {
+      if (form.projectType === 'BU_SUB' && !value) {
+        callback(new Error('请选择所属事业部'))
+      } else {
+        callback()
+      }
+    },
+    trigger: 'change',
+  }],
   constructionUnit: [{ required: true, message: '请输入施工单位', trigger: 'blur' }],
 }
 
@@ -66,6 +75,12 @@ function handleCancel() {
 }
 
 onMounted(() => loadBuList())
+
+// 切换项目类型时，清空事业部选择并重新校验
+watch(() => form.projectType, () => {
+  form.buName = ''
+  formRef.value?.validateField('buName')
+})
 </script>
 
 <template>
@@ -103,8 +118,8 @@ onMounted(() => loadBuList())
           </el-radio-group>
         </el-form-item>
 
-        <!-- BU selector (required for BU_SUB) -->
-        <el-form-item label="所属事业部" prop="buName">
+        <!-- BU selector (only for BU_SUB) -->
+        <el-form-item v-if="form.projectType === 'BU_SUB'" label="所属事业部" prop="buName">
           <el-select v-model="form.buName" placeholder="请选择事业部" style="width: 300px">
             <el-option
               v-for="bu in buList"

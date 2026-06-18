@@ -55,6 +55,43 @@ public class InspectionRecord {
     private Integer levelIi;
     private Integer levelIii;
     private Integer levelIv;
+
+    // ── RT射线检测专用字段 (胶片射线报告A) ──
+    private String filmModel;
+    private String filmSpec;
+    private String leadScreen;
+    private String iqiModel;
+    private String iqiPosition;
+    private String requiredIqi;
+    private String sourceType;
+    private String equipmentModel;
+    private String tubeVoltage;
+    private String tubeCurrent;
+    private String focalDistance;
+    private String exposureTime;
+    private String techniqueType;
+    private String filmProcessing;
+    private String developmentTime;
+    private String developmentTemperature;
+    private String filmDensityRange;
+    private String inspectionTechLevel;
+    private String heatTreatmentStatus;
+    private String inspectionTiming;
+    private String pressureEquipmentCategory;
+    private String plateThickness;
+    private String iqiValue;
+    private String transilluminationLength;
+    private String defectDetails;
+    private Integer inspectionCount;
+    private Integer repairCount;
+    private Integer reinspectionCount;
+    private Integer extendedInspectionCount;
+    private String firstPassYield;
+    private String finalYield;
+    private String projectCode;
+    private String reviewerName;
+    private String technicalLeadName;
+
     private Long createBy;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

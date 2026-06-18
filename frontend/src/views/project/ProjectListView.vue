@@ -158,6 +158,22 @@ async function handleToggleStatus(row) {
   }
 }
 
+async function handleDelete(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除项目「${row.projectName}」？删除后项目及其关联数据将不可恢复。`,
+      '删除确认',
+      { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'error' }
+    )
+    await projectApi.remove(row.id)
+    ElMessage.success('项目已删除')
+    loadTable()
+    loadTree()
+  } catch {
+    // Cancelled or error
+  }
+}
+
 onMounted(() => {
   loadTree().then(() => loadTable())
 })
@@ -275,7 +291,7 @@ onMounted(() => {
               {{ formatDateTime(row.createTime) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="240" align="center" fixed="right">
+          <el-table-column label="操作" width="300" align="center" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" :icon="View" @click="goToDetail(row)">详情</el-button>
               <el-button link type="success" :icon="EditPen" @click="goToInspection(row)">录入</el-button>
@@ -288,6 +304,7 @@ onMounted(() => {
               >
                 {{ row.status === 'IN_PROGRESS' ? '完成' : '启动' }}
               </el-button>
+              <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>

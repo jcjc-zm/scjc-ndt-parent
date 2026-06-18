@@ -101,6 +101,9 @@ const canvasFields = ref([])
 // Image areas on canvas
 const imageAreas = ref([])
 
+// Sections-based template (system table templates)
+const pagesLayout = ref(null)
+
 // Dragging state
 const draggingField = ref(null)
 
@@ -236,8 +239,17 @@ async function loadTemplate() {
       if (tpl.layoutConfig) {
         try {
           const layout = typeof tpl.layoutConfig === 'string' ? JSON.parse(tpl.layoutConfig) : tpl.layoutConfig
-          canvasFields.value = layout.fields || []
-          imageAreas.value = layout.imageAreas || []
+          if (layout.pages) {
+            // System table template — show preview mode
+            pagesLayout.value = layout
+            canvasFields.value = []
+            imageAreas.value = []
+          } else {
+            // Custom drag-drop template
+            pagesLayout.value = null
+            canvasFields.value = layout.fields || []
+            imageAreas.value = layout.imageAreas || []
+          }
         } catch { /* ignore */ }
       }
     }
@@ -298,13 +310,86 @@ onMounted(() => loadTemplate())
         </div>
       </aside>
 
-      <!-- Center: A4 Canvas -->
+      <!-- Center: A4 Canvas / Sections Preview -->
       <main
         class="canvas-area"
         @dragover.prevent
         @drop.prevent="handleCanvasDrop"
       >
-        <div class="canvas-scroll">
+        <!-- Sections-based template preview (system templates) -->
+        <div v-if="pagesLayout" class="pages-preview">
+          <div class="preview-notice">
+            <el-alert type="info" :closable="false" show-icon title="系统预设模板">
+              <template #default>
+                <p>此模板为系统预设的表格格式模板，不可拖拽编辑。</p>
+                <p>如需自定义，请新建模板或通过<a href="javascript:void(0)" @click="router.push('/report/preview/0')">报告预览</a>查看效果。</p>
+              </template>
+            </el-alert>
+          </div>
+          <div v-for="(page, pi) in pagesLayout.pages" :key="pi" class="preview-page">
+            <h3 v-if="page.name" class="preview-page-name">{{ page.name }}</h3>
+            <div v-for="(section, si) in page.sections" :key="si" class="preview-section">
+              <div v-if="section.type === 'header'" class="ps-header">
+                <strong>{{ section.text }}</strong>
+                <span class="ps-subtext">{{ section.subtext }}</span>
+              </div>
+              <div v-else-if="section.type === 'table'" class="ps-table">
+                <div class="ps-table-label">{{ section.label }}</div>
+                <table v-if="section.rows" class="ps-info-table">
+                  <tbody>
+                    <tr v-for="(row, ri) in section.rows" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci"
+                          :colspan="cell.colspan || 1"
+                          :class="{ 'ps-td-label': cell.label }">
+                        {{ cell.label }}<template v-if="cell.bind">：____</template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <table v-else-if="section.columns" class="ps-data-table">
+                  <colgroup>
+                    <col v-for="col in section.columns" :key="col.field"
+                         :style="{ width: col.width ? col.width + 'px' : 'auto' }">
+                  </colgroup>
+                  <thead>
+                    <tr v-for="(hrow, hi) in section.headerRows" :key="'hr'+hi">
+                      <th v-for="(hcell, hci) in hrow" :key="'hc'+hci"
+                          :colspan="hcell.colspan || 1"
+                          :rowspan="hcell.rowspan || 1"
+                          style="text-align:center;vertical-align:middle">
+                        {{ hcell.label }}<template v-if="hcell.bind">：____</template>
+                      </th>
+                    </tr>
+                  </thead>
+                  <thead v-if="!section.headerRows?.some(r => r.some(c => c.rowspan > 1))">
+                    <tr><th v-for="col in section.columns" :key="col.field">{{ col.label }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="n in Math.min(section.dataRows || 5, 8)" :key="n">
+                      <td v-for="col in section.columns" :key="col.field">&nbsp;</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else-if="section.type === 'image-area'" class="ps-image">
+                <el-icon :size="40"><Picture /></el-icon>
+                <span>{{ section.label }}</span>
+              </div>
+              <div v-else-if="section.type === 'text'" class="ps-text">
+                {{ section.content }}
+              </div>
+              <div v-else-if="section.type === 'signature'" class="ps-signature">
+                <div class="ps-sig-row">
+                  <div v-for="sig in section.signatories" :key="sig.label" class="ps-sig-item">
+                    {{ sig.label }}：________
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="canvas-scroll">
           <div class="a4-canvas" :style="{ width: '595px', minHeight: '842px' }">
             <!-- Rendered fields -->
             <div
@@ -600,4 +685,55 @@ onMounted(() => loadTemplate())
   color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
+
+/* ── Sections preview in designer ── */
+.pages-preview {
+  width: 680px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  padding: 24px;
+}
+.preview-notice { margin-bottom: 20px; }
+.preview-notice p { margin: 4px 0; font-size: 13px; }
+.preview-notice a { color: var(--color-accent); }
+.preview-page {
+  background: #fff;
+  padding: 32px 40px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+  border-radius: 2px;
+}
+.preview-page-name { font-size: 16px; font-weight: 600; text-align: center; margin: 0 0 20px; color: var(--color-text-secondary); }
+.preview-section { margin-bottom: 16px; }
+
+.ps-header { text-align: center; padding: 8px 0 16px; border-bottom: 2px solid #1e293b; margin-bottom: 16px; }
+.ps-header strong { font-size: 20px; display: block; }
+.ps-subtext { font-size: 12px; color: var(--color-text-secondary); }
+
+.ps-table-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.ps-info-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ps-info-table td { border: 1px solid #e2e8f0; padding: 5px 8px; }
+.ps-td-label { background: #f8fafc; font-weight: 600; white-space: nowrap; }
+
+.ps-data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ps-data-table th, .ps-data-table td { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: center; }
+.ps-data-table th { background: #f8fafc; font-weight: 600; }
+.ps-data-table td { height: 24px; }
+
+.ps-image {
+  border: 2px dashed #94a3b8;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--color-text-placeholder);
+  gap: 8px;
+}
+
+.ps-text { font-size: 14px; padding: 8px 0; }
+.ps-signature { margin-top: 24px; }
+.ps-sig-row { display: flex; gap: 24px; }
+.ps-sig-item { flex: 1; text-align: center; font-size: 13px; font-weight: 500; }
 </style>

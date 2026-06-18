@@ -9,15 +9,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Build
 mvn clean compile          # compile only
-mvn clean package          # compile + package (skips tests by default in this config)
+mvn clean package          # compile + package + run any tests
 
 # Run
 mvn spring-boot:run        # development server on port 8088
 java -jar target/scjc-ndt-parent-1.0-SNAPSHOT.jar
 
-# Tests
-mvn test                          # run all tests
-mvn test -Dtest=UserServiceTest   # run single test class
+# Tests (spring-boot-starter-test is configured, but no tests exist yet)
+mvn test                   # run all tests
+mvn test -Dtest=ClassName  # run single test class
 ```
 
 ### Frontend (Vue 3 + Vite)
@@ -27,9 +27,18 @@ cd frontend
 npm install               # install dependencies
 npm run dev               # dev server on port 5173, proxies /api → localhost:8088
 npm run build             # production build
+
+# Browser testing (Playwright)
+npx playwright test        # run Playwright tests
 ```
 
 Full-stack dev: start backend (`mvn spring-boot:run`) and frontend (`npm run dev`) concurrently, then open `http://localhost:5173`.
+
+**Note:** No Maven wrapper (`mvnw`) is included — Maven must be installed and on `PATH`.
+
+### Vite dev proxy
+
+The Vite dev server proxies `/api` → `http://localhost:8088` (see `frontend/vite.config.js`). Path alias `@` resolves to `frontend/src/` for imports.
 
 ## Architecture
 
@@ -37,18 +46,21 @@ Full-stack dev: start backend (`mvn spring-boot:run`) and frontend (`npm run dev
 
 ### Tech stack
 **Backend:** Java 17 · Spring Boot 3.2.6 · Spring Security · MyBatis-Plus 3.5.7 · MySQL · JWT (jjwt 0.12.6) · Lombok
-**Frontend:** Vue 3.5 · Vite 8 · Element Plus 2.14 · Pinia 3 · Vue Router 4 · ECharts 6 · Axios · VXE Table
+**Frontend:** Vue 3.5 · Vite 8 · Element Plus 2.14 · Pinia 3 · Vue Router 4 · ECharts 6 · Axios · VXE Table · html2canvas + jsPDF (report export) · SheetJS/xlsx (Excel) · @vueuse/core (composition utilities)
 
 ### Backend layer structure (standard MVC)
+
+Base package: `com.scjc.ndt`. Entry point: `NdtApplication` — `@SpringBootApplication` + `@MapperScan("com.scjc.ndt.mapper")` (required for MyBatis-Plus to discover mapper interfaces).
+
 ```
 controller/  →  service/  →  mapper/ (MyBatis-Plus BaseMapper)
                           →  entity/ (JPA-annotated POJOs with @TableName)
-common/       —  R<T> (unified response), JwtUtils, GlobalExceptionHandler, BusinessException
+common/       —  R<T> (unified response), JwtUtils, GlobalExceptionHandler, BusinessException, FlexibleLocalDateDeserializer
 config/       —  SecurityConfig, JwtAuthenticationFilter, CorsConfig, MyBatisPlusConfig
-dto/          —  request/response POJOs with jakarta.validation
+dto/          —  request/response POJOs with jakarta.validation (UserInfo, TreeNode, PageQuery, etc.)
 ```
 
-### Business modules (8 domain areas)
+### Business modules (11 domain areas)
 
 | Module | Controller | Service | Mapper(s) | Description |
 |--------|-----------|---------|-----------|-------------|
@@ -74,6 +86,7 @@ dto/          —  request/response POJOs with jakarta.validation
 - **Entity → DTO conversion**: `UserInfo` is the safe-to-expose user representation (no password). Conversion happens in service layer via `toUserInfo()`.
 - **CORS**: `CorsConfig` allows all origins (`*`) with credentials, all methods (GET/POST/PUT/DELETE/OPTIONS), and all headers.
 - **User identity in controllers**: Retrieve via `request.getAttribute("userId")` (Long) and `request.getAttribute("username")` (String).
+- **Org tree**: `GET /api/projects/tree` returns a permission-aware nested org tree (`TreeNode`: id, label, type, children, buName). Users see only projects in their scope (SYSTEM_ADMIN sees all, BU_ADMIN sees their BU's projects, etc.).
 
 ### Role hierarchy (6 fixed roles)
 
@@ -96,6 +109,8 @@ Inspection data entry → Generate report (select template) →
         SIGNED (final state)
 ```
 
+Report export uses `html2canvas` (DOM → canvas) + `jsPDF` (canvas → PDF) for client-side PDF generation. Excel import/export uses `xlsx` (SheetJS).
+
 ### Frontend structure
 ```
 frontend/src/
@@ -109,15 +124,53 @@ frontend/src/
 ```
 
 - **HTTP client**: `src/utils/request.js` — Axios instance with base `/api`, JWT injected via request interceptor, `R<T>` unwrapped in response interceptor, 401 triggers redirect to `/login`.
+- **API module convention**: Each `src/api/*.js` imports `request` and exports functions that call `request.get/post/put/delete(path, params)`. The response interceptor returns `res.data` directly (already unwrapped from `R<T>`), so callers receive the payload without `.code`/`.message` fields.
 - **Auth guard**: `router.beforeEach` checks `localStorage.getItem('token')`, redirects to `/login?redirect=...` if missing on protected routes.
 - **State**: Pinia stores. `user.js` holds token + userInfo in localStorage.
-- **UI library**: Element Plus (primary). VXE Table for complex tables (inspection data). ECharts for dashboard charts. `vue-draggable-plus` for template layout drag & drop.
+- **UI library**: Element Plus (primary). VXE Table for complex tables (reports, user lists, etc.). ECharts for dashboard charts. `vue-draggable-plus` for template layout drag & drop. The inspection entry page uses jspreadsheet-ce (see below) instead of VXE Table.
+- **Project statuses**: Defined in `src/constants/projectStatus.js` — `PENDING` (待启动), `IN_PROGRESS` (进行中), `COMPLETED` (已完成).
+
+### Frontend routing
+
+```
+/login                          → LoginView (public)
+/                               → MainLayout (auth required)
+  /dashboard                    → DashboardView
+  /project                      → ProjectListView
+  /project/create               → ProjectCreateView
+  /project/:id/detail           → ProjectDetailView
+  /inspection/:projectId/entry  → InspectionEntryView (data entry grid)
+  /report                       → ReportListView
+  /report/design/:id            → ReportDesignView (template designer)
+  /report/preview/:id           → ReportPreviewView
+  /report/create/:inspectionId  → ReportCreateView
+  /template                     → TemplateManageView (template list & management)
+  /approval                     → ApprovalView (signature workflow)
+  /user                         → UserListView
+  /system/dept                  → DeptManageView
+  /system/role                  → RoleManageView
+  /system/images                → ImageLibraryView
+/403                            → Forbidden
+/:pathMatch(.*)*                → 404
+```
+
+### Inspection data entry (jspreadsheet integration)
+
+The inspection entry page uses **jspreadsheet-ce v5.0.4** with a specific setup:
+
+- **`tableOverflow: false`** — jspreadsheet renders the full table without internal scroll; scrolling is handled by a wrapper `.sheet-wrap` div with `overflow: auto`. This gives browser-native scrollbars (both vertical + horizontal), sticky thead, and Excel-like behavior.
+- **Instance lookup**: jspreadsheet-ce v5 injects the worksheet instance on the child `.jss_container` element (`.jss_container.jspreadsheet`), not on the container element itself (v4 behavior). The instance IS the worksheet — it has `insertRow()`, `getData()`, `setData()`, `getSelected()` directly. No `.current` wrapper.
+- **`onchange` caveat**: The `onchange` callback is unreliable with `tableOverflow: false`. Use DOM-level `click`/`keydown` listeners on the spreadsheet container to detect user interaction.
+- **Infinite scroll**: 2000 empty rows pre-padded via `buildSheetData()`. A 400ms `setInterval` poller + scroll event listener checks `scrollHeight - scrollTop - clientHeight < 400px` and calls `worksheet.insertRow(200)` to extend.
+- **Save**: Manual save via button or Ctrl+S. Calls `worksheet.getData(false)` to collect all rows, then creates/updates via API. `touched` ref tracks unsaved modifications; `beforeunload` warns on leave.
+- **Keyboard navigation**: Arrow keys/Tab/Enter scroll the active cell to center of viewport (with boundary clamping at start/end of sheet).
+- **Playwright** is available (`npm install` includes it) for browser-based verification of the inspection entry page.
 
 ### Database
 - Database: `scjc_ndt` (MySQL, utf8mb4)
 - Initial schema & seed data: `doc/sql/init.sql`
 - Seed account: `admin` / `admin123` (SYSTEM_ADMIN)
-- 10 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `system_image`, `report_template`, `report_record`, `signature_record`
+- 11 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `system_image`, `report_template`, `report_record`, `signature_record`
 
 ### Default config (application.yml)
 - Port: `8088`

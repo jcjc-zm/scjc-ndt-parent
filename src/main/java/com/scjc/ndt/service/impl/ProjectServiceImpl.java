@@ -98,6 +98,13 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    public void delete(Long id) {
+        SysProject project = projectMapper.selectById(id);
+        if (project == null) throw new BusinessException("项目不存在");
+        projectMapper.deleteById(id);
+    }
+
+    @Override
     public SysProject getById(Long id) {
         SysProject project = projectMapper.selectById(id);
         if (project == null) throw new BusinessException("项目不存在");

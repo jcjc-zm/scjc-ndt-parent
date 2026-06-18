@@ -157,6 +157,42 @@ public class InspectionServiceImpl implements InspectionService {
         r.setLevelIi(req.getLevelIi());
         r.setLevelIii(req.getLevelIii());
         r.setLevelIv(req.getLevelIv());
+
+        // ── RT射线检测专用字段 ──
+        r.setFilmModel(req.getFilmModel());
+        r.setFilmSpec(req.getFilmSpec());
+        r.setLeadScreen(req.getLeadScreen());
+        r.setIqiModel(req.getIqiModel());
+        r.setIqiPosition(req.getIqiPosition());
+        r.setRequiredIqi(req.getRequiredIqi());
+        r.setSourceType(req.getSourceType());
+        r.setEquipmentModel(req.getEquipmentModel());
+        r.setTubeVoltage(req.getTubeVoltage());
+        r.setTubeCurrent(req.getTubeCurrent());
+        r.setFocalDistance(req.getFocalDistance());
+        r.setExposureTime(req.getExposureTime());
+        r.setTechniqueType(req.getTechniqueType());
+        r.setFilmProcessing(req.getFilmProcessing());
+        r.setDevelopmentTime(req.getDevelopmentTime());
+        r.setDevelopmentTemperature(req.getDevelopmentTemperature());
+        r.setFilmDensityRange(req.getFilmDensityRange());
+        r.setInspectionTechLevel(req.getInspectionTechLevel());
+        r.setHeatTreatmentStatus(req.getHeatTreatmentStatus());
+        r.setInspectionTiming(req.getInspectionTiming());
+        r.setPressureEquipmentCategory(req.getPressureEquipmentCategory());
+        r.setPlateThickness(req.getPlateThickness());
+        r.setIqiValue(req.getIqiValue());
+        r.setTransilluminationLength(req.getTransilluminationLength());
+        r.setDefectDetails(req.getDefectDetails());
+        r.setInspectionCount(req.getInspectionCount());
+        r.setRepairCount(req.getRepairCount());
+        r.setReinspectionCount(req.getReinspectionCount());
+        r.setExtendedInspectionCount(req.getExtendedInspectionCount());
+        r.setFirstPassYield(req.getFirstPassYield());
+        r.setFinalYield(req.getFinalYield());
+        r.setProjectCode(req.getProjectCode());
+        r.setReviewerName(req.getReviewerName());
+        r.setTechnicalLeadName(req.getTechnicalLeadName());
         if (req.getDefectPositions() != null) {
             try {
                 r.setDefectPositions(objectMapper.writeValueAsString(req.getDefectPositions()));

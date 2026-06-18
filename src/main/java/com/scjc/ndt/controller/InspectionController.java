@@ -6,8 +6,8 @@ import com.scjc.ndt.dto.InspectionRequest;
 import com.scjc.ndt.entity.InspectionRecord;
 import com.scjc.ndt.service.InspectionService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,13 +38,15 @@ public class InspectionController {
     }
 
     @PostMapping
-    public R<InspectionRecord> create(@Valid @RequestBody InspectionRequest req, HttpServletRequest request) {
+    public R<InspectionRecord> create(
+            @Validated(InspectionRequest.OnCreate.class) @RequestBody InspectionRequest req,
+            HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         return R.ok(inspectionService.create(req, userId));
     }
 
     @PutMapping("/{id}")
-    public R<InspectionRecord> update(@PathVariable Long id, @Valid @RequestBody InspectionRequest req) {
+    public R<InspectionRecord> update(@PathVariable Long id, @RequestBody InspectionRequest req) {
         return R.ok(inspectionService.update(id, req));
     }
 

@@ -19,4 +19,7 @@ export const projectApi = {
   updateStatus(id, status) {
     return request.put(`/projects/${id}/status`, { status })
   },
+  remove(id) {
+    return request.delete(`/projects/${id}`)
+  },
 }
