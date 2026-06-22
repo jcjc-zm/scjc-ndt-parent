@@ -50,7 +50,7 @@ public class InspectionRequest {
     private String remark;
     private String inspectorName;
     private String boxNo;
-    private BigDecimal filmLength;
+    private String filmLength;
     private Integer filmCount;
     private String imageUrl;
     private Integer levelI;

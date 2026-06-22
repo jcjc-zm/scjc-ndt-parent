@@ -31,7 +31,7 @@ const positionOptions = ['管口', '法兰', '弯头', '三通', '直管段']
 
 const columnDefs = [
   { field: 'weldNo', title: '焊口编号', width: 120, type: 'text', required: true },
-  { field: 'inspectionMethod', title: '检测方法', width: 90, type: 'dropdown', source: methodTypes },
+  { field: 'inspectionMethod', title: '检测方法', width: 90, type: 'text' },
   { field: 'constructionUnit', title: '施工单位', width: 130, type: 'text' },
   { field: 'instructionNo', title: '指令编号', width: 120, type: 'text' },
   { field: 'instructionDate', title: '指令日期', width: 110, type: 'text' },
@@ -40,9 +40,9 @@ const columnDefs = [
   { field: 'buDept', title: '所属事业部', width: 110, type: 'text' },
   { field: 'specification', title: '规格', width: 90, type: 'text' },
   { field: 'material', title: '材质', width: 90, type: 'text' },
-  { field: 'grooveType', title: '坡口形式', width: 95, type: 'dropdown', source: grooveOptions },
-  { field: 'position', title: '部位', width: 90, type: 'dropdown', source: positionOptions },
-  { field: 'weldingMethod', title: '焊接方式', width: 95, type: 'dropdown', source: weldMethodOptions },
+  { field: 'grooveType', title: '坡口形式', width: 95, type: 'text' },
+  { field: 'position', title: '部位', width: 90, type: 'text' },
+  { field: 'weldingMethod', title: '焊接方式', width: 95, type: 'text' },
   { field: 'ratio', title: '比例', width: 75, type: 'text' },
   { field: 'inspectionStandard', title: '检测标准', width: 110, type: 'text' },
   { field: 'qualifiedLevel', title: '合格级别', width: 90, type: 'text' },
@@ -53,8 +53,8 @@ const columnDefs = [
   { field: 'processCardNo', title: '工艺卡编号', width: 120, type: 'text' },
   { field: 'samplingInstructionNo', title: '抽检指令编号', width: 130, type: 'text' },
   { field: 'inspectionDate', title: '检测日期', width: 110, type: 'text' },
-  { field: 'resultLevel', title: '级别', width: 65, type: 'dropdown', source: levelOptions },
-  { field: 'inspectionConclusion', title: '检测结论', width: 95, type: 'dropdown', source: conclusionOptions },
+  { field: 'resultLevel', title: '级别', width: 65, type: 'text' },
+  { field: 'inspectionConclusion', title: '检测结论', width: 95, type: 'text' },
   { field: 'unqualifiedHandling', title: '不合格处理', width: 130, type: 'text' },
   { field: 'reportDefectPosition', title: '缺陷位置', width: 110, type: 'text' },
   { field: 'reportDefectNature', title: '缺陷性质', width: 110, type: 'text' },
@@ -63,47 +63,12 @@ const columnDefs = [
   { field: 'remark', title: '备注', width: 140, type: 'text' },
   { field: 'inspectorName', title: '检测人员', width: 90, type: 'text' },
   { field: 'boxNo', title: '箱号', width: 90, type: 'text' },
-  { field: 'filmLength', title: '底片长度', width: 90, type: 'numeric', mask: '#.##' },
+  { field: 'filmLength', title: '底片长度', width: 90, type: 'text' },
   { field: 'filmCount', title: '底片张数', width: 85, type: 'numeric' },
   { field: 'levelI', title: 'Ⅰ级', width: 60, type: 'numeric' },
   { field: 'levelIi', title: 'Ⅱ级', width: 60, type: 'numeric' },
   { field: 'levelIii', title: 'Ⅲ级', width: 60, type: 'numeric' },
   { field: 'levelIv', title: 'Ⅳ级', width: 60, type: 'numeric' },
-  // ── RT射线检测专用字段 (胶片射线报告A) ──
-  { field: 'filmModel', title: '胶片型号', width: 90, type: 'text' },
-  { field: 'filmSpec', title: '胶片规格', width: 90, type: 'text' },
-  { field: 'leadScreen', title: '铅增感屏', width: 90, type: 'text' },
-  { field: 'iqiModel', title: '像质计型号', width: 100, type: 'text' },
-  { field: 'iqiPosition', title: '像质计位置', width: 100, type: 'text' },
-  { field: 'requiredIqi', title: '要求像质指数', width: 100, type: 'text' },
-  { field: 'sourceType', title: '源的种类', width: 90, type: 'text' },
-  { field: 'equipmentModel', title: '设备型号', width: 100, type: 'text' },
-  { field: 'tubeVoltage', title: '管电压', width: 80, type: 'text' },
-  { field: 'tubeCurrent', title: '管电流', width: 80, type: 'text' },
-  { field: 'focalDistance', title: '焦点尺寸/焦距', width: 115, type: 'text' },
-  { field: 'exposureTime', title: '曝光时间', width: 85, type: 'text' },
-  { field: 'techniqueType', title: '透照方式', width: 100, type: 'text' },
-  { field: 'filmProcessing', title: '胶片处理', width: 90, type: 'text' },
-  { field: 'developmentTime', title: '显影时间', width: 85, type: 'text' },
-  { field: 'developmentTemperature', title: '显影温度', width: 85, type: 'text' },
-  { field: 'filmDensityRange', title: '底片黑度范围', width: 105, type: 'text' },
-  { field: 'inspectionTechLevel', title: '检测技术等级', width: 105, type: 'text' },
-  { field: 'heatTreatmentStatus', title: '热处理状态', width: 100, type: 'text' },
-  { field: 'inspectionTiming', title: '检测时机', width: 90, type: 'text' },
-  { field: 'pressureEquipmentCategory', title: '承压设备类别', width: 110, type: 'text' },
-  { field: 'plateThickness', title: '板厚(mm)', width: 85, type: 'text' },
-  { field: 'iqiValue', title: '像质指数', width: 80, type: 'text' },
-  { field: 'transilluminationLength', title: '一次透照长度', width: 105, type: 'text' },
-  { field: 'defectDetails', title: '缺陷情况', width: 130, type: 'text' },
-  { field: 'inspectionCount', title: '检测数量(道)', width: 100, type: 'numeric' },
-  { field: 'repairCount', title: '返修数量(道)', width: 100, type: 'numeric' },
-  { field: 'reinspectionCount', title: '复探数量(道)', width: 100, type: 'numeric' },
-  { field: 'extendedInspectionCount', title: '扩探数量(道)', width: 100, type: 'numeric' },
-  { field: 'firstPassYield', title: '一次合格率', width: 90, type: 'text' },
-  { field: 'finalYield', title: '最终合格率', width: 90, type: 'text' },
-  { field: 'projectCode', title: '工程编号', width: 120, type: 'text' },
-  { field: 'reviewerName', title: '审核人', width: 90, type: 'text' },
-  { field: 'technicalLeadName', title: '技术负责人', width: 100, type: 'text' },
   // Defect position display columns (15 positions, read-only summary)
   ...Array.from({ length: 15 }, (_, i) => ({
     field: `_defectPos${i + 1}`,
@@ -438,7 +403,7 @@ function buildRowFromSheet(rowIndex) {
     if (col.displayOnly) return  // skip display-only columns
     let val = rowData[i]
     if (val === '' || val === undefined || val === null) {
-      obj[col.field] = (col.field === 'inspectionLength' || col.field === 'filmLength' ||
+      obj[col.field] = (col.field === 'inspectionLength' ||
         col.field === 'filmCount' || col.field.startsWith('level')) ? null : ''
     } else if (col.type === 'numeric') {
       let num = Number(val)
@@ -571,20 +536,14 @@ async function applyFilter() {
 async function handleExport() {
   try {
     loading.value = true
-    const res = await inspectionApi.exportData({ projectId: projectId.value, method: filterMethod.value })
-    const url = window.URL.createObjectURL(res)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `检测数据_${project.value?.projectCode || projectId.value}.xlsx`
-    link.click()
-    window.URL.revokeObjectURL(url)
-    ElMessage.success('导出成功')
-  } catch {
-    // Fallback: build from loaded data
     const res = await inspectionApi.list({ projectId: projectId.value, method: filterMethod.value, size: 100000 })
     if (res?.data?.records) {
       exportToExcel(res.data.records)
+    } else {
+      ElMessage.warning('没有可导出的数据')
     }
+  } catch {
+    ElMessage.error('导出失败，请稍后重试')
   } finally {
     loading.value = false
   }

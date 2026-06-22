@@ -98,10 +98,22 @@ public class InspectionServiceImpl implements InspectionService {
         int count = 0;
         for (InspectionRequest req : records) {
             req.setProjectId(projectId);
+            // 去重：同项目下焊口编号已存在则跳过
+            if (existsByWeldNo(projectId, req.getWeldNo())) {
+                continue;
+            }
             create(req, userId);
             count++;
         }
         return count;
+    }
+
+    private boolean existsByWeldNo(Long projectId, String weldNo) {
+        if (weldNo == null || weldNo.isEmpty()) return false;
+        LambdaQueryWrapper<InspectionRecord> q = new LambdaQueryWrapper<>();
+        q.eq(InspectionRecord::getProjectId, projectId)
+         .eq(InspectionRecord::getWeldNo, weldNo);
+        return mapper.selectCount(q) > 0;
     }
 
     @Override

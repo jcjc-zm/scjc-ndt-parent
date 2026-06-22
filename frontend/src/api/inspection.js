@@ -17,7 +17,7 @@ export const inspectionApi = {
     return request.delete(`/inspections/${id}`)
   },
   batchImport(projectId, data) {
-    return request.post('/inspections/batch-import', { projectId, data })
+    return request.post('/inspections/batch-import', data, { params: { projectId } })
   },
   exportData(params) {
     return request.get('/inspections/export', { params, responseType: 'blob' })

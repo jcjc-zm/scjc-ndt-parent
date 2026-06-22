@@ -18,8 +18,11 @@ public class FlexibleLocalDateDeserializer extends JsonDeserializer<LocalDate> {
 
     private static final List<DateTimeFormatter> FORMATTERS = List.of(
         DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+        DateTimeFormatter.ofPattern("yyyy-M-d"),
         DateTimeFormatter.ofPattern("yyyy.MM.dd"),
+        DateTimeFormatter.ofPattern("yyyy.M.d"),
         DateTimeFormatter.ofPattern("yyyy/MM/dd"),
+        DateTimeFormatter.ofPattern("yyyy/M/d"),
         DateTimeFormatter.ofPattern("yyyyMMdd"),
         DateTimeFormatter.ISO_LOCAL_DATE
     );
@@ -28,6 +31,18 @@ public class FlexibleLocalDateDeserializer extends JsonDeserializer<LocalDate> {
     public LocalDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         String value = p.getText().trim();
         if (value.isEmpty()) return null;
+
+        // 尝试解析 Excel 日期序列号 (如 45735 → 2025-03-20)
+        if (value.matches("\\d+")) {
+            try {
+                long serial = Long.parseLong(value);
+                if (serial >= 1 && serial <= 100000) {
+                    return LocalDate.of(1899, 12, 30).plusDays(serial);
+                }
+            } catch (NumberFormatException ignored) {
+                // fall through
+            }
+        }
 
         for (DateTimeFormatter fmt : FORMATTERS) {
             try {
