@@ -17,7 +17,7 @@ export const projectApi = {
     return request.put(`/projects/${id}`, data)
   },
   updateStatus(id, status) {
-    return request.put(`/projects/${id}/status`, { status })
+    return request.put(`/projects/${id}/status`, null, { params: { status } })
   },
   remove(id) {
     return request.delete(`/projects/${id}`)

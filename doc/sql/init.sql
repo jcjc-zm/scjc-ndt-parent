@@ -30,7 +30,7 @@ CREATE TABLE `sys_dept` (
     `parent_id` BIGINT DEFAULT NULL COMMENT '父节点ID',
     `dept_name` VARCHAR(100) NOT NULL COMMENT '部门名称',
     `dept_type` VARCHAR(20) NOT NULL COMMENT 'COMPANY/BU/PROJECT',
-    `bu_name` VARCHAR(50) DEFAULT NULL COMMENT '所属事业部(成都/重庆/新疆/长庆)',
+    `bu_name` VARCHAR(50) DEFAULT NULL COMMENT '所属事业部(成都/重庆/新疆/长庆/完整性检测所)',
     `sort` INT DEFAULT 0,
     `status` TINYINT DEFAULT 1 COMMENT '1启用 0禁用',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -48,7 +48,8 @@ INSERT INTO `sys_dept` VALUES
 (3, 1, '重庆事业部', 'BU', '重庆事业部', 2, 1, NOW(), NOW(), 0),
 (4, 1, '新疆事业部', 'BU', '新疆事业部', 3, 1, NOW(), NOW(), 0),
 (5, 1, '长庆事业部', 'BU', '长庆事业部', 4, 1, NOW(), NOW(), 0),
-(6, 1, '公司直属项目一', 'PROJECT', NULL, 5, 1, NOW(), NOW(), 0);
+(6, 1, '完整性检测所', 'BU', '完整性检测所', 5, 1, NOW(), NOW(), 0),
+(7, 1, '公司直属项目一', 'PROJECT', NULL, 6, 1, NOW(), NOW(), 0);
 
 -- ============================================================
 -- 二、角色表（6种固定角色）

@@ -61,7 +61,7 @@ public class InspectionServiceImpl implements InspectionService {
          .eq(StringUtils.hasText(level), InspectionRecord::getResultLevel, level)
          .eq(StringUtils.hasText(conclusion), InspectionRecord::getInspectionConclusion, conclusion)
          .like(StringUtils.hasText(keyword), InspectionRecord::getWeldNo, keyword)
-         .orderByDesc(InspectionRecord::getCreateTime);
+         .orderByAsc(InspectionRecord::getCreateTime);
 
         List<Long> projectIds = getProjectIds(userId);
         if (projectIds != null && projectIds.isEmpty()) projectIds = Arrays.asList(-1L);

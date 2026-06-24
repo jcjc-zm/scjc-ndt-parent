@@ -24,7 +24,7 @@ const deptTypeOptions = [
   { label: '项目部', value: 'PROJECT' },
 ]
 
-const buOptions = ['成都', '重庆', '新疆', '长庆']
+const buOptions = ['成都', '重庆', '新疆', '长庆', '完整性检测所']
 
 async function loadTree() {
   loading.value = true
