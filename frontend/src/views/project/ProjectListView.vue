@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -24,6 +24,7 @@ const tableData = ref([])
 const total = ref(0)
 const selectedNodeType = ref('')
 const selectedBuName = ref('')
+const currentTreeNode = ref(null)
 
 const query = reactive({
   page: 1,
@@ -31,8 +32,25 @@ const query = reactive({
   keyword: '',
 })
 
-// Status tag mapping (imported from shared constants)
+// --- KPI stats ---
+const kpiStats = reactive({
+  totalProjects: 0,
+  inProgress: 0,
+  completed: 0,
+  pending: 0,
+})
+
+// Status tag mapping
 const statusMap = PROJECT_STATUS_MAP
+
+// --- Computed page title ---
+const pageSubtitle = computed(() => {
+  if (!currentTreeNode.value) return '按组织架构浏览和管理项目数据'
+  const node = currentTreeNode.value
+  if (node.type === 'COMPANY') return '公司级 · 按组织架构浏览和管理项目数据'
+  if (node.type === 'BU') return `事业部 · ${node.label}`
+  return ''
+})
 
 // Load tree
 async function loadTree() {
@@ -45,6 +63,7 @@ async function loadTree() {
         defaultExpandedKeys.value = [res.data[0].id]
         currentNodeKey.value = res.data[0].id
         selectedNodeType.value = 'COMPANY'
+        currentTreeNode.value = res.data[0]
       }
     }
   } catch {
@@ -62,6 +81,7 @@ function handleNodeClick(data) {
   }
   currentNodeKey.value = data.id
   selectedNodeType.value = data.type
+  currentTreeNode.value = data
   if (data.type === 'COMPANY') {
     selectedBuName.value = ''
   } else if (data.type === 'BU') {
@@ -103,6 +123,40 @@ async function loadTable() {
   } finally {
     loading.value = false
   }
+}
+
+// Load KPI stats
+async function loadStats() {
+  try {
+    const res = await projectApi.list({ page: 1, size: 1 })
+    if (res?.data) {
+      kpiStats.totalProjects = res.data.total || 0
+    }
+    // Secondary queries for status counts — not a separate endpoint yet,
+    // so we aggregate from tree data
+    countProjectsByStatus(treeData.value)
+  } catch {
+    // ignore
+  }
+}
+
+function countProjectsByStatus(nodes) {
+  let pending = 0, inProgress = 0, completed = 0
+  function walk(list) {
+    for (const node of list) {
+      if (node.type === 'PROJECT') {
+        if (node.status === 'PENDING') pending++
+        else if (node.status === 'IN_PROGRESS') inProgress++
+        else if (node.status === 'COMPLETED') completed++
+      }
+      if (node.children?.length) walk(node.children)
+    }
+  }
+  walk(nodes)
+  kpiStats.pending = pending
+  kpiStats.inProgress = inProgress
+  kpiStats.completed = completed
+  kpiStats.totalProjects = pending + inProgress + completed
 }
 
 // Search
@@ -174,27 +228,76 @@ async function handleDelete(row) {
   }
 }
 
-onMounted(() => {
-  loadTree().then(() => loadTable())
+onMounted(async () => {
+  await loadTree()
+  loadStats()
+  loadTable()
 })
+
+// Watch tree data to update stats after refresh
+watch(treeData, (val) => {
+  if (val.length) countProjectsByStatus(val)
+}, { deep: true })
 </script>
 
 <template>
   <div class="page-container">
     <!-- Page header -->
     <div class="page-header">
-      <div>
+      <div class="header-info">
         <h2 class="page-title">数据管理</h2>
-        <p class="page-subtitle">按组织架构浏览和管理项目数据</p>
+        <p class="page-subtitle">{{ pageSubtitle }}</p>
       </div>
       <el-button
         v-if="userStore.canCreateProject"
         type="primary"
-        :icon="Plus"
+        size="large"
+        class="create-btn"
         @click="goToCreate"
       >
+        <el-icon class="btn-icon"><Plus /></el-icon>
         创建立项
       </el-button>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="kpi-row">
+      <div class="kpi-card kpi-card--total">
+        <div class="kpi-icon">
+          <el-icon :size="20"><FolderOpened /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.totalProjects }}</div>
+          <div class="kpi-label">项目总数</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--active">
+        <div class="kpi-icon">
+          <el-icon :size="20"><Loading /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.inProgress }}</div>
+          <div class="kpi-label">进行中</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--success">
+        <div class="kpi-icon">
+          <el-icon :size="20"><CircleCheck /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.completed }}</div>
+          <div class="kpi-label">已完成</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--pending">
+        <div class="kpi-icon">
+          <el-icon :size="20"><Clock /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ kpiStats.pending }}</div>
+          <div class="kpi-label">待启动</div>
+        </div>
+      </div>
     </div>
 
     <!-- Content: tree + table -->
@@ -202,16 +305,19 @@ onMounted(() => {
       <!-- Left: Tree -->
       <div class="tree-panel">
         <div class="tree-header">
+          <el-icon :size="16" class="tree-header-icon"><Grid /></el-icon>
           <span class="tree-title">组织架构</span>
         </div>
-        <el-input
-          v-model="treeFilterText"
-          placeholder="搜索节点..."
-          :prefix-icon="Search"
-          clearable
-          size="small"
-          class="tree-search"
-        />
+        <div class="tree-search-wrap">
+          <el-input
+            v-model="treeFilterText"
+            placeholder="搜索节点..."
+            :prefix-icon="Search"
+            clearable
+            size="small"
+            class="tree-search"
+          />
+        </div>
         <div class="tree-body" v-loading="treeLoading">
           <el-tree
             ref="treeRef"
@@ -222,16 +328,25 @@ onMounted(() => {
             :current-node-key="currentNodeKey"
             :filter-node-method="filterNode"
             highlight-current
+            :expand-on-click-node="true"
             @node-click="handleNodeClick"
           >
             <template #default="{ data }">
-              <span class="tree-node" :class="`tree-node--${data.type.toLowerCase()}`">
-                <el-icon v-if="data.type === 'COMPANY' || data.type === 'BU'" :size="16">
-                  <FolderOpened />
+              <span class="tree-node" :class="`tree-node--${data.type?.toLowerCase()}`">
+                <el-icon v-if="data.type === 'COMPANY'" :size="16" class="tree-node-icon company-icon">
+                  <OfficeBuilding />
                 </el-icon>
-                <el-icon v-else :size="16"><Document /></el-icon>
+                <el-icon v-else-if="data.type === 'BU'" :size="16" class="tree-node-icon bu-icon">
+                  <Connection />
+                </el-icon>
+                <el-icon v-else :size="14" class="tree-node-icon project-icon"><Document /></el-icon>
                 <span class="tree-node-label">{{ data.label }}</span>
-                <span v-if="data.type === 'PROJECT' && data.status" class="tree-node-status" :class="`status-${data.status.toLowerCase()}`" />
+                <span
+                  v-if="data.type === 'PROJECT' && data.status"
+                  class="tree-node-badge"
+                  :class="`badge--${data.status?.toLowerCase()}`"
+                  :title="statusMap[data.status]?.label"
+                />
               </span>
             </template>
           </el-tree>
@@ -248,67 +363,109 @@ onMounted(() => {
               placeholder="搜索项目编号、名称..."
               :prefix-icon="Search"
               clearable
-              style="width: 220px"
+              style="width: 260px"
               size="default"
+              class="search-input"
               @keyup.enter="handleSearch"
               @clear="handleSearch"
             />
-            <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-            <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+            <el-button type="primary" @click="handleSearch">
+              <el-icon><Search /></el-icon>
+              查询
+            </el-button>
+            <el-button @click="handleReset">
+              <el-icon><Refresh /></el-icon>
+              重置
+            </el-button>
           </div>
           <div class="filter-right">
-            <span class="total-count">共 {{ total }} 个项目</span>
+            <span class="total-hint">
+              <span class="total-count">{{ total }}</span>
+              <span class="total-unit">个项目</span>
+            </span>
           </div>
         </div>
 
         <!-- Table -->
-        <el-table
-          :data="tableData"
-          v-loading="loading"
-          border
-          stripe
-          style="width: 100%"
-          :empty-text="'请从左侧选择组织节点查看项目'"
-        >
-          <el-table-column prop="projectCode" label="项目编号" width="140" show-overflow-tooltip />
-          <el-table-column prop="projectName" label="项目名称" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="unitProjectName" label="单位工程名称" min-width="160" show-overflow-tooltip />
-          <el-table-column prop="buName" label="所属事业部" width="120" align="center">
-            <template #default="{ row }">
-              {{ row.buName || '公司直属' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="constructionUnit" label="施工单位" width="140" show-overflow-tooltip />
-          <el-table-column prop="contractNo" label="合同编号" width="140" show-overflow-tooltip />
-          <el-table-column label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="statusMap[row.status]?.type || 'info'" effect="light" size="small">
-                {{ statusMap[row.status]?.label || row.status }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="170" align="center">
-            <template #default="{ row }">
-              {{ formatDateTime(row.createTime) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="300" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" :icon="View" @click="goToDetail(row)">详情</el-button>
-              <el-button link type="success" :icon="EditPen" @click="goToInspection(row)">录入</el-button>
-              <el-button
-                v-if="row.status !== 'COMPLETED'"
-                link
-                type="warning"
-                :icon="SwitchButton"
-                @click="handleToggleStatus(row)"
-              >
-                {{ row.status === 'IN_PROGRESS' ? '完成' : '启动' }}
-              </el-button>
-              <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div class="table-wrap">
+          <el-table
+            :data="tableData"
+            v-loading="loading"
+            stripe
+            style="width: 100%"
+            row-class-name="project-row"
+            :empty-text="'请从左侧选择组织节点查看项目'"
+            highlight-current-row
+          >
+            <el-table-column prop="projectCode" label="项目编号" width="150" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="col-code">{{ row.projectCode }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="projectName" label="项目名称" min-width="180" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="col-name">{{ row.projectName }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="unitProjectName" label="单位工程名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="buName" label="所属事业部" width="130" align="center">
+              <template #default="{ row }">
+                <span class="col-bu">{{ row.buName || '公司直属' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="constructionUnit" label="施工单位" width="150" show-overflow-tooltip />
+            <el-table-column prop="contractNo" label="合同编号" width="150" show-overflow-tooltip />
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <span
+                  class="status-dot"
+                  :class="`status-dot--${row.status?.toLowerCase()}`"
+                />
+                <el-tag
+                  :type="statusMap[row.status]?.type || 'info'"
+                  effect="plain"
+                  size="small"
+                  class="status-tag"
+                >
+                  {{ statusMap[row.status]?.label || row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="创建时间" width="170" align="center">
+              <template #default="{ row }">
+                {{ formatDateTime(row.createTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="300" align="center" fixed="right">
+              <template #default="{ row }">
+                <div class="action-group">
+                  <el-button link type="primary" class="action-link" @click="goToDetail(row)">
+                    <el-icon><View /></el-icon>
+                    详情
+                  </el-button>
+                  <el-button link type="primary" class="action-link" @click="goToInspection(row)">
+                    <el-icon><EditPen /></el-icon>
+                    录入
+                  </el-button>
+                  <el-button
+                    v-if="row.status !== 'COMPLETED'"
+                    link
+                    type="warning"
+                    class="action-link"
+                    @click="handleToggleStatus(row)"
+                  >
+                    <el-icon><SwitchButton /></el-icon>
+                    {{ row.status === 'IN_PROGRESS' ? '完成' : '启动' }}
+                  </el-button>
+                  <el-button link type="danger" class="action-link" @click="handleDelete(row)">
+                    <el-icon><Delete /></el-icon>
+                    删除
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
 
         <!-- Pagination -->
         <div class="pagination-wrap" v-if="total > query.size">
@@ -329,31 +486,40 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ── Page container ── */
 .page-container {
-  animation: fadeIn 0.3s ease;
+  animation: fadeSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Page header ── */
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
   flex-shrink: 0;
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .page-title {
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin: 0 0 4px;
+  margin: 0;
+  letter-spacing: -0.3px;
 }
 
 .page-subtitle {
@@ -362,17 +528,102 @@ onMounted(() => {
   margin: 0;
 }
 
-/* Content wrapper */
+.create-btn {
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.create-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+}
+
+.btn-icon {
+  margin-right: 4px;
+}
+
+/* ── KPI cards ── */
+.kpi-row {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-shrink: 0;
+}
+
+.kpi-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: default;
+}
+
+.kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.kpi-card--total .kpi-icon {
+  background: linear-gradient(135deg, #475569, #334155);
+}
+.kpi-card--active .kpi-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.kpi-card--success .kpi-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.kpi-card--pending .kpi-icon {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  font-family: var(--font-mono);
+}
+
+.kpi-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+}
+
+/* ── Content wrapper ── */
 .content-wrapper {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   flex: 1;
   min-height: 0;
 }
 
-/* Left tree panel */
+/* ── Left tree panel ── */
 .tree-panel {
-  width: 260px;
+  width: 270px;
   flex-shrink: 0;
   background: var(--color-bg-card);
   border-radius: var(--radius-md);
@@ -380,11 +631,24 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: box-shadow var(--transition-fast);
+}
+
+.tree-panel:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .tree-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg-hover);
+}
+
+.tree-header-icon {
+  color: var(--color-primary);
 }
 
 .tree-title {
@@ -393,14 +657,15 @@ onMounted(() => {
   color: var(--color-text-primary);
 }
 
-.tree-search {
-  margin: 8px 12px;
+.tree-search-wrap {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tree-body {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
 }
 
 /* Tree node styling */
@@ -409,31 +674,38 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  padding: 1px 0;
 }
+
+.tree-node-icon {
+  flex-shrink: 0;
+}
+
+.company-icon { color: var(--color-primary); }
+.bu-icon { color: #6366f1; }
+.project-icon { color: var(--color-text-secondary); }
 
 .tree-node-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
-.tree-node-status {
-  width: 8px;
-  height: 8px;
+.tree-node-badge {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
   margin-left: auto;
+  border: 1px solid rgba(255,255,255,0.6);
 }
 
-.status-pending { background: #909399; }
-.status-in_progress { background: #67c23a; }
-.status-completed { background: #409eff; }
+.badge--pending { background: #94a3b8; }
+.badge--in_progress { background: #3b82f6; }
+.badge--completed { background: #10b981; }
 
-.tree-node--project {
-  padding-left: 4px;
-}
-
-/* Right table panel */
+/* ── Right table panel ── */
 .table-panel {
   flex: 1;
   display: flex;
@@ -442,40 +714,146 @@ onMounted(() => {
   background: var(--color-bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  padding: 16px;
+  padding: var(--space-4);
   overflow: hidden;
+  transition: box-shadow var(--transition-fast);
 }
 
+.table-panel:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Filter bar */
 .filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-4);
   flex-shrink: 0;
-  gap: 12px;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .filter-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-.total-count {
-  font-size: 13px;
-  color: var(--color-text-secondary);
+.search-input :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.search-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--color-primary-light) inset;
+}
+
+.total-hint {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
   white-space: nowrap;
 }
 
+.total-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+}
+
+.total-unit {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* Table wrap */
+.table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Table row styling */
+:deep(.project-row) {
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+:deep(.project-row:hover) {
+  background-color: var(--color-bg-hover) !important;
+}
+
+/* Column highlights */
+.col-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-bg-hover);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.col-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.col-bu {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Status indicator */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.status-dot--pending { background: #94a3b8; }
+.status-dot--in_progress { background: #3b82f6; }
+.status-dot--completed { background: #10b981; }
+
+.status-tag {
+  font-weight: 500;
+}
+
+/* Action group */
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.action-link {
+  padding: 4px 8px !important;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.action-link:hover {
+  background: var(--color-bg-hover) !important;
+}
+
+/* Pagination */
 .pagination-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-light);
   flex-shrink: 0;
-}
-
-/* el-table inside table-panel should fill remaining space */
-.table-panel :deep(.el-table) {
-  flex: 1;
 }
 </style>

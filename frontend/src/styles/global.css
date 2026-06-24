@@ -136,6 +136,18 @@ a:hover {
   color: var(--color-text-secondary);
 }
 
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-sm {
+  font-size: 12px;
+}
+
+.text-strong {
+  font-weight: 600;
+}
+
 /* Page transitions */
 .fade-enter-active,
 .fade-leave-active {
@@ -152,10 +164,12 @@ a:hover {
   border-right: none !important;
 }
 
+/* Card */
 .el-card {
   border-radius: var(--radius-md);
 }
 
+/* Button */
 .el-button--primary {
   --el-button-bg-color: var(--color-primary);
   --el-button-border-color: var(--color-primary);
@@ -164,4 +178,101 @@ a:hover {
 .el-button--primary:hover {
   --el-button-bg-color: var(--color-primary-light);
   --el-button-border-color: var(--color-primary-light);
+}
+
+/* Table */
+.el-table {
+  --el-table-border-color: var(--color-border);
+  --el-table-header-bg-color: var(--color-bg-hover);
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-table .el-table__row {
+  transition: background-color var(--transition-fast);
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background-color: #fafbfc;
+}
+
+/* Table empty state */
+.el-table__empty-text {
+  color: var(--color-text-placeholder);
+  font-size: 14px;
+}
+
+/* Pagination */
+.el-pagination.is-background .el-pager li:not(.is-disabled).is-active {
+  background-color: var(--color-primary);
+}
+
+/* Descriptions */
+.el-descriptions__label {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Tag */
+.el-tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+/* Select */
+.el-select {
+  --el-select-border-color-hover: var(--color-primary-light);
+}
+
+/* Input */
+.el-input {
+  --el-input-border-color: var(--color-border);
+  --el-input-hover-border-color: var(--color-primary-light);
+  --el-input-focus-border-color: var(--color-primary);
+}
+
+/* Radio button */
+.el-radio-button__inner {
+  font-weight: 500;
+}
+
+/* Divider */
+.el-divider__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-card);
+}
+
+/* Loading */
+.el-loading-mask {
+  backdrop-filter: blur(1px);
+}
+
+/* Dialog */
+.el-message-box {
+  border-radius: var(--radius-lg);
+}
+
+/* Tree */
+.el-tree {
+  --el-tree-node-hover-bg-color: var(--color-bg-hover);
+}
+
+.el-tree-node__content:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content {
+  background-color: rgba(51, 65, 85, 0.08);
+  color: var(--color-primary);
+  font-weight: 500;
 }

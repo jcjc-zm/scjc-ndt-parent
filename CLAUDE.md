@@ -15,9 +15,10 @@ mvn clean package          # compile + package + run any tests
 mvn spring-boot:run        # development server on port 8088
 java -jar target/scjc-ndt-parent-1.0-SNAPSHOT.jar
 
-# Tests (spring-boot-starter-test is configured)
-mvn test                   # run all tests
-mvn test -Dtest=ClassName  # run single test class
+# Tests (spring-boot-starter-test is configured, uses JUnit 5 + Mockito)
+mvn test                                          # run all tests
+mvn test -Dtest=ClassName                         # run single test class
+mvn test -Dtest=ClassName#methodName              # run single test method
 ```
 
 ### Frontend (Vue 3 + Vite)
@@ -34,7 +35,7 @@ npx playwright test        # run Playwright tests
 
 Full-stack dev: start backend (`mvn spring-boot:run`) and frontend (`npm run dev`) concurrently, then open `http://localhost:5173`.
 
-**Note:** No Maven wrapper (`mvnw`) is included — Maven must be installed and on `PATH`.
+**Note:** No Maven wrapper (`mvnw`) is included — Maven must be installed and on `PATH`. Tests use JUnit 5 (`@Test`, `@DisplayName`) + Mockito (`mock()`, `when()`) — see `FlexibleLocalDateDeserializerTest` for the pattern.
 
 ### Vite dev proxy
 
@@ -79,7 +80,7 @@ dto/          —  request/response POJOs with jakarta.validation (UserInfo, Tre
 
 ### Key design decisions
 
-- **Unified response wrapper**: All controllers return `R<T>` (fields: `code`, `message`, `data`). Success = 200; `BusinessException` thrown in services is caught by `GlobalExceptionHandler` and converted to `R.error(code, message)`. Validation errors return code 400. Unexpected exceptions return code 500.
+- **Unified response wrapper**: All controllers return `R<T>` (fields: `code`, `message`, `data`). Success = 200. Services throw `BusinessException(code, message)` for known errors → `GlobalExceptionHandler` converts to `R.error(code, message)`. Validation errors (`MethodArgumentNotValidException`) return code 400. Unexpected exceptions return code 500. Controllers never catch — all error handling is centralized in the exception handler.
 - **Stateless JWT auth**: `SecurityConfig` disables CSRF, sets `SessionCreationPolicy.STATELESS`. `JwtAuthenticationFilter` (a `OncePerRequestFilter`) skips `/api/auth/**` and OPTIONS; for all other requests it extracts `Authorization: Bearer <token>`, validates via `JwtUtils`, sets `request.setAttribute("userId"/"username")`, and builds a Spring Security `UsernamePasswordAuthenticationToken` into `SecurityContextHolder`.
 - **Public endpoints**: `POST /api/auth/login`, all `/api/auth/**`, `/api/public/**`, and OPTIONS are unauthenticated. Everything else requires a valid JWT.
 - **Password encoding**: BCrypt via `PasswordEncoder` bean. Seed accounts (admin) in `doc/sql/init.sql` use `admin123`.
@@ -89,6 +90,8 @@ dto/          —  request/response POJOs with jakarta.validation (UserInfo, Tre
 - **Entity → DTO conversion**: `UserInfo` is the safe-to-expose user representation (no password). Conversion happens in service layer via `toUserInfo()`.
 - **CORS**: `CorsConfig` allows all origins (`*`) with credentials, all methods (GET/POST/PUT/DELETE/OPTIONS), and all headers.
 - **User identity in controllers**: Retrieve via `request.getAttribute("userId")` (Long) and `request.getAttribute("username")` (String).
+- **Date deserialization**: `FlexibleLocalDateDeserializer` (custom Jackson `JsonDeserializer`) handles 7 date formats (`yyyy-MM-dd`, `yyyy/M/d`, `yyyy.M.d`, `yyyyMMdd`, etc.) plus Excel serial numbers (e.g., `45735` → `2025-03-19`). Used via `@JsonDeserialize(using = ...)` on `LocalDate` fields in `InspectionRequest` and `ProcessCardRequest`.
+- **Validation groups**: DTOs use `jakarta.validation` with groups for differential validation. E.g., `InspectionRequest` defines `OnCreate` interface — `@NotBlank(groups = OnCreate.class)` on `weldNo` enforces it only during create, not update. Controllers annotate with `@Validated(OnCreate.class)` or `@Valid` (no groups).
 - **Org tree**: `GET /api/projects/tree` returns a permission-aware nested org tree (`TreeNode`: id, label, type, children, buName). Users see only projects in their scope (SYSTEM_ADMIN sees all, BU_ADMIN sees their BU's projects, etc.).
 
 ### Role hierarchy (6 fixed roles)
