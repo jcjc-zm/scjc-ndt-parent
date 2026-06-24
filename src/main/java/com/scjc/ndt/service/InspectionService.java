@@ -11,8 +11,8 @@ public interface InspectionService {
                                   String method, String level, String conclusion,
                                   String keyword, Long userId);
     InspectionRecord create(InspectionRequest request, Long userId);
-    InspectionRecord update(Long id, InspectionRequest request);
-    void delete(Long id);
+    InspectionRecord update(Long id, InspectionRequest request, Long userId);
+    void delete(Long id, Long userId);
     InspectionRecord getById(Long id);
     int batchImport(List<InspectionRequest> records, Long projectId, Long userId);
     List<InspectionRecord> export(Long projectId, String method, Long userId);

@@ -46,13 +46,16 @@ public class InspectionController {
     }
 
     @PutMapping("/{id}")
-    public R<InspectionRecord> update(@PathVariable Long id, @RequestBody InspectionRequest req) {
-        return R.ok(inspectionService.update(id, req));
+    public R<InspectionRecord> update(@PathVariable Long id, @RequestBody InspectionRequest req,
+                                       HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return R.ok(inspectionService.update(id, req, userId));
     }
 
     @DeleteMapping("/{id}")
-    public R<Void> delete(@PathVariable Long id) {
-        inspectionService.delete(id);
+    public R<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        inspectionService.delete(id, userId);
         return R.ok();
     }
 

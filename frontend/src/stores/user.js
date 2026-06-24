@@ -27,6 +27,7 @@ export const useUserStore = defineStore('user', () => {
   const canManageUsers = computed(() => isSystemAdmin.value || isCompanyAdmin.value || isBuAdmin.value)
   const canCreateProject = computed(() => isSystemAdmin.value || isBuAdmin.value)
   const canSign = computed(() => isTechnicalLeader.value || isProjectManagerRole.value)
+  const canEditProject = computed(() => isSystemAdmin.value)
   const canEditInspection = computed(() =>
     isSystemAdmin.value || isBuAdmin.value || isProjectAdmin.value
   )
@@ -90,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
     isProjectManagerRole,
     canManageUsers,
     canCreateProject,
+    canEditProject,
     canSign,
     canEditInspection,
     login,

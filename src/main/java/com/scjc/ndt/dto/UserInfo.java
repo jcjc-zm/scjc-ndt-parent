@@ -15,4 +15,5 @@ public class UserInfo {
     private Integer status;
     private List<String> roles;
     private List<Long> projectIds;
+    private List<String> projectNames;
 }

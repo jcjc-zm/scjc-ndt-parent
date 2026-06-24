@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Upload, Download, Search, Delete, Grid, Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -413,6 +413,12 @@ function buildRowFromSheet(rowIndex) {
       obj[col.field] = val
     }
   })
+  // Auto-fill project-derived fields when empty
+  if (project.value) {
+    if (!obj.buDept) obj.buDept = project.value.buName || ''
+    if (!obj.projectName) obj.projectName = project.value.projectName || ''
+    if (!obj.unitProjectName) obj.unitProjectName = project.value.unitProjectName || ''
+  }
   // Normalize date fields: users may type "2026.06.17" or "2026/06/17"
   const dateFields = ['instructionDate', 'inspectionDate']
   dateFields.forEach((f) => {
@@ -424,7 +430,8 @@ function buildRowFromSheet(rowIndex) {
 }
 
 // ─── Save all data (like Excel — save everything on demand) ───
-async function handleSave() {
+// silent=true 时不弹出成功提示（用于自动保存场景），但错误仍会提示
+async function handleSave(silent = false) {
   if (!worksheet || saving.value) return
 
   saving.value = true
@@ -451,7 +458,8 @@ async function handleSave() {
         const existingRow = rowIdx < tableData.length ? tableData[rowIdx] : null
 
         if (existingRow?.id) {
-          // Only update if data actually changed
+          // PROJECT_ADMIN can only create, not modify
+          if (userStore.isProjectAdmin) continue
           await inspectionApi.update(existingRow.id, { ...rowData, projectId: projectId.value })
           Object.assign(existingRow, rowData)
           saved++
@@ -481,9 +489,9 @@ async function handleSave() {
     if (errors > 0) {
       ElMessage.warning(`保存完成：${saved} 条成功，${errors} 条失败`)
     } else if (saved > 0) {
-      ElMessage.success(`已保存 ${saved} 条数据`)
+      if (!silent) ElMessage.success(`已保存 ${saved} 条数据`)
     } else {
-      ElMessage.info('数据无变化')
+      if (!silent) ElMessage.info('数据无变化')
     }
   } finally {
     saving.value = false
@@ -639,7 +647,10 @@ function buildFieldMap(headers) {
 }
 
 // ─── Navigation ───
-function goBack() {
+async function goBack() {
+  if (touched.value) {
+    await handleSave(true)
+  }
   router.push(`/project/${projectId.value}/detail`)
 }
 
@@ -771,6 +782,14 @@ function onBeforeUnload(e) {
   }
 }
 
+// ─── Auto-save when navigating away (router navigation) ───
+onBeforeRouteLeave(async (to, from, next) => {
+  if (touched.value) {
+    await handleSave(true)
+  }
+  next()
+})
+
 // ─── Lifecycle ───
 onMounted(async () => {
   await loadProject()
@@ -863,7 +882,7 @@ onBeforeUnmount(() => {
         <el-tooltip content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
           <el-button :icon="Grid" @click="openDefectEditor">编辑缺陷</el-button>
         </el-tooltip>
-        <el-tooltip content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
+        <el-tooltip v-if="!userStore.isProjectAdmin" content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
           <el-button :icon="Delete" type="danger" plain @click="handleDeleteSelected">删除行</el-button>
         </el-tooltip>
       </div>

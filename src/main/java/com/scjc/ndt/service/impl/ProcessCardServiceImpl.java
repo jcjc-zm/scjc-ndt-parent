@@ -28,9 +28,15 @@ public class ProcessCardServiceImpl implements ProcessCardService {
     private final SysRoleMapper roleMapper;
 
     private List<Long> getProjectIds(Long userId) {
-        List<String> roles = userRoleRelMapper.selectList(
+        List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
-        ).stream().map(r -> roleMapper.selectById(r.getRoleId()).getRoleCode()).collect(Collectors.toList());
+        );
+        if (rels.isEmpty()) return List.of();
+        List<String> roles = rels.stream()
+            .map(r -> roleMapper.selectById(r.getRoleId()))
+            .filter(r -> r != null)
+            .map(SysRole::getRoleCode)
+            .collect(Collectors.toList());
         if (roles.contains("SYSTEM_ADMIN") || roles.contains("COMPANY_ADMIN")) {
             return null;
         }
@@ -64,7 +70,10 @@ public class ProcessCardServiceImpl implements ProcessCardService {
     }
 
     @Override
-    public ProcessCard update(Long id, ProcessCardRequest req) {
+    public ProcessCard update(Long id, ProcessCardRequest req, Long userId) {
+        if (getRoleCodes(userId).contains("PROJECT_ADMIN")) {
+            throw new BusinessException(403, "项目管理员无权修改工艺卡");
+        }
         ProcessCard r = mapper.selectById(id);
         if (r == null) throw new BusinessException("工艺卡不存在");
         ProcessCard updated = buildRecord(req);
@@ -75,7 +84,10 @@ public class ProcessCardServiceImpl implements ProcessCardService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Long id, Long userId) {
+        if (getRoleCodes(userId).contains("PROJECT_ADMIN")) {
+            throw new BusinessException(403, "项目管理员无权删除工艺卡");
+        }
         mapper.deleteById(id);
     }
 
@@ -100,7 +112,7 @@ public class ProcessCardServiceImpl implements ProcessCardService {
         LambdaQueryWrapper<ProcessCard> q = new LambdaQueryWrapper<>();
         q.eq(projectId != null, ProcessCard::getProjectId, projectId);
         List<Long> projectIds = getProjectIds(userId);
-        if (projectIds != null) q.in(ProcessCard::getProjectId, projectIds);
+        if (projectIds != null && !projectIds.isEmpty()) q.in(ProcessCard::getProjectId, projectIds);
         return mapper.selectList(q);
     }
 
@@ -140,5 +152,17 @@ public class ProcessCardServiceImpl implements ProcessCardService {
         r.setFilmCount(req.getFilmCount());
         r.setRemark(req.getRemark());
         return r;
+    }
+
+    private List<String> getRoleCodes(Long userId) {
+        List<UserRoleRel> rels = userRoleRelMapper.selectList(
+            new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
+        );
+        if (rels.isEmpty()) return List.of();
+        return rels.stream()
+            .map(r -> roleMapper.selectById(r.getRoleId()))
+            .filter(r -> r != null)
+            .map(SysRole::getRoleCode)
+            .collect(Collectors.toList());
     }
 }

@@ -11,7 +11,7 @@ public interface ProjectService {
     IPage<SysProject> listProjects(Integer page, Integer size, String keyword, String projectType, String buName, Long userId);
     List<TreeNode> getTree(Long userId);
     SysProject create(ProjectRequest request, Long creatorId);
-    SysProject update(Long id, ProjectRequest request);
+    SysProject update(Long id, ProjectRequest request, Long userId);
     void updateStatus(Long id, String status);
     void delete(Long id);
     SysProject getById(Long id);

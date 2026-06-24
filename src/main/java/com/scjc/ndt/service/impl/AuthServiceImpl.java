@@ -68,9 +68,14 @@ public class AuthServiceImpl implements AuthService {
         List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, user.getId())
         );
-        List<Long> roleIds = rels.stream().map(UserRoleRel::getRoleId).collect(Collectors.toList());
-        List<String> roles = roleMapper.selectBatchIds(roleIds).stream()
-                .map(SysRole::getRoleCode).collect(Collectors.toList());
+        List<String> roles;
+        if (rels.isEmpty()) {
+            roles = List.of();
+        } else {
+            List<Long> roleIds = rels.stream().map(UserRoleRel::getRoleId).collect(Collectors.toList());
+            roles = roleMapper.selectBatchIds(roleIds).stream()
+                    .map(SysRole::getRoleCode).collect(Collectors.toList());
+        }
         info.setRoles(roles);
 
         List<UserProjectRel> projRels = userProjectRelMapper.selectList(

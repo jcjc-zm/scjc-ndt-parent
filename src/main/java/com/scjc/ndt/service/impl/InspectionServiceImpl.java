@@ -29,12 +29,19 @@ public class InspectionServiceImpl implements InspectionService {
     private final UserProjectRelMapper userProjectRelMapper;
     private final UserRoleRelMapper userRoleRelMapper;
     private final SysRoleMapper roleMapper;
+    private final SysProjectMapper projectMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private List<Long> getProjectIds(Long userId) {
-        List<String> roles = userRoleRelMapper.selectList(
+        List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
-        ).stream().map(r -> roleMapper.selectById(r.getRoleId()).getRoleCode()).collect(Collectors.toList());
+        );
+        if (rels.isEmpty()) return List.of();
+        List<String> roles = rels.stream()
+            .map(r -> roleMapper.selectById(r.getRoleId()))
+            .filter(r -> r != null)
+            .map(SysRole::getRoleCode)
+            .collect(Collectors.toList());
         if (roles.contains("SYSTEM_ADMIN") || roles.contains("COMPANY_ADMIN")) {
             return null; // all projects
         }
@@ -72,7 +79,10 @@ public class InspectionServiceImpl implements InspectionService {
     }
 
     @Override
-    public InspectionRecord update(Long id, InspectionRequest req) {
+    public InspectionRecord update(Long id, InspectionRequest req, Long userId) {
+        if (getRoleCodes(userId).contains("PROJECT_ADMIN")) {
+            throw new BusinessException(403, "项目管理员无权修改检测记录");
+        }
         InspectionRecord r = mapper.selectById(id);
         if (r == null) throw new BusinessException("检测记录不存在");
         InspectionRecord updated = buildRecord(req);
@@ -83,7 +93,10 @@ public class InspectionServiceImpl implements InspectionService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Long id, Long userId) {
+        if (getRoleCodes(userId).contains("PROJECT_ADMIN")) {
+            throw new BusinessException(403, "项目管理员无权删除检测记录");
+        }
         mapper.deleteById(id);
     }
 
@@ -122,7 +135,7 @@ public class InspectionServiceImpl implements InspectionService {
         q.eq(projectId != null, InspectionRecord::getProjectId, projectId)
          .eq(StringUtils.hasText(method), InspectionRecord::getInspectionMethod, method);
         List<Long> projectIds = getProjectIds(userId);
-        if (projectIds != null) q.in(InspectionRecord::getProjectId, projectIds);
+        if (projectIds != null && !projectIds.isEmpty()) q.in(InspectionRecord::getProjectId, projectIds);
         return mapper.selectList(q);
     }
 
@@ -136,7 +149,19 @@ public class InspectionServiceImpl implements InspectionService {
         r.setInspectionMethod(req.getInspectionMethod());
         r.setProjectName(req.getProjectName());
         r.setUnitProjectName(req.getUnitProjectName());
-        r.setBuDept(req.getBuDept());
+        // buDept: use user-provided value if present; otherwise derive from project's buName
+        if (StringUtils.hasText(req.getBuDept())) {
+            r.setBuDept(req.getBuDept());
+        } else if (req.getProjectId() != null) {
+            SysProject project = projectMapper.selectById(req.getProjectId());
+            if (project != null && StringUtils.hasText(project.getBuName())) {
+                r.setBuDept(project.getBuName());
+            } else {
+                r.setBuDept(req.getBuDept());
+            }
+        } else {
+            r.setBuDept(req.getBuDept());
+        }
         r.setSpecification(req.getSpecification());
         r.setMaterial(req.getMaterial());
         r.setGrooveType(req.getGrooveType());
@@ -213,5 +238,17 @@ public class InspectionServiceImpl implements InspectionService {
             }
         }
         return r;
+    }
+
+    private List<String> getRoleCodes(Long userId) {
+        List<UserRoleRel> rels = userRoleRelMapper.selectList(
+            new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
+        );
+        if (rels.isEmpty()) return List.of();
+        return rels.stream()
+            .map(r -> roleMapper.selectById(r.getRoleId()))
+            .filter(r -> r != null)
+            .map(SysRole::getRoleCode)
+            .collect(Collectors.toList());
     }
 }

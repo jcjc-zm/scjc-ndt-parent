@@ -18,7 +18,7 @@ const router = createRouter({
           path: 'dashboard',
           name: 'Dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),
-          meta: { title: '驾驶舱', icon: 'Odometer' },
+          meta: { title: '数据总览', icon: 'Odometer' },
         },
         {
           path: 'project',

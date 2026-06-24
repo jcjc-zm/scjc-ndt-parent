@@ -12,8 +12,10 @@ public class DashboardStats {
     private Long pendingEntryCount;
     private Long weeklyNew;
     private Long activeProjects;
+    private List<Integer> trend;
     private List<MethodDistribution> methodDistribution;
     private List<WeeklyWorkload> weeklyWorkload;
+    private List<ProjectLocation> projectLocations;
 
     @Data
     public static class MethodDistribution {
@@ -35,5 +37,13 @@ public class DashboardStats {
         private Integer dr;
         private Integer total;
         private Double qualifiedRate;
+    }
+
+    @Data
+    public static class ProjectLocation {
+        private Long projectId;
+        private String projectName;
+        private String projectCode;
+        private String location;
     }
 }

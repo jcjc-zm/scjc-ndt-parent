@@ -2,6 +2,7 @@ package com.scjc.ndt.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -16,6 +17,13 @@ public class SysProject {
     private String buName;
     private String projectType;
     private String constructionUnit;
+    private String designUnit;
+    private String supervisionUnit;
+    private String contractNo;
+    private BigDecimal contractAmount;
+    private String projectManager;
+    private String projectLocation;
+    private String projectDescription;
     private String status;
     private Long createBy;
     @TableField(fill = FieldFill.INSERT)

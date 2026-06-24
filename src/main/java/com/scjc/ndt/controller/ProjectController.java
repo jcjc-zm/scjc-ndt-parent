@@ -48,8 +48,10 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    public R<Void> update(@PathVariable Long id, @Valid @RequestBody ProjectRequest req) {
-        projectService.update(id, req);
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody ProjectRequest req,
+                          HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        projectService.update(id, req, userId);
         return R.ok();
     }
 

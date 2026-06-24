@@ -15,7 +15,7 @@ mvn clean package          # compile + package + run any tests
 mvn spring-boot:run        # development server on port 8088
 java -jar target/scjc-ndt-parent-1.0-SNAPSHOT.jar
 
-# Tests (spring-boot-starter-test is configured, but no tests exist yet)
+# Tests (spring-boot-starter-test is configured)
 mvn test                   # run all tests
 mvn test -Dtest=ClassName  # run single test class
 ```
@@ -54,13 +54,13 @@ Base package: `com.scjc.ndt`. Entry point: `NdtApplication` — `@SpringBootAppl
 
 ```
 controller/  →  service/  →  mapper/ (MyBatis-Plus BaseMapper)
-                          →  entity/ (JPA-annotated POJOs with @TableName)
+                          →  entity/ (MyBatis-Plus-annotated POJOs with @TableName)
 common/       —  R<T> (unified response), JwtUtils, GlobalExceptionHandler, BusinessException, FlexibleLocalDateDeserializer
 config/       —  SecurityConfig, JwtAuthenticationFilter, CorsConfig, MyBatisPlusConfig
 dto/          —  request/response POJOs with jakarta.validation (UserInfo, TreeNode, PageQuery, etc.)
 ```
 
-### Business modules (11 domain areas)
+### Business modules (12 domain areas)
 
 | Module | Controller | Service | Mapper(s) | Description |
 |--------|-----------|---------|-----------|-------------|
@@ -74,6 +74,7 @@ dto/          —  request/response POJOs with jakarta.validation (UserInfo, Tre
 | Signature | `SignatureController` | `SignatureService` | `SignatureRecordMapper` | Two-step approval workflow |
 | Template | `TemplateController` | `TemplateService` | `ReportTemplateMapper` | Report template design |
 | Dashboard | `DashboardController` | `DashboardService` | — | Aggregated statistics |
+| ProcessCard | `ProcessCardController` | `ProcessCardService` | `ProcessCardMapper` | Process card CRUD (工艺卡管理) |
 | Image | `ImageController` | `ImageService` | `SystemImageMapper` | Image library (films/diagrams) |
 
 ### Key design decisions
@@ -83,6 +84,8 @@ dto/          —  request/response POJOs with jakarta.validation (UserInfo, Tre
 - **Public endpoints**: `POST /api/auth/login`, all `/api/auth/**`, `/api/public/**`, and OPTIONS are unauthenticated. Everything else requires a valid JWT.
 - **Password encoding**: BCrypt via `PasswordEncoder` bean. Seed accounts (admin) in `doc/sql/init.sql` use `admin123`.
 - **MyBatis-Plus conventions**: `BaseMapper<T>` + `IService<T>`/`ServiceImpl<M, T>` for CRUD. Logical delete on `deleted` column (0/1). Auto-fill on `createTime`/`updateTime` via `MetaObjectHandler`. Pagination via `PaginationInnerInterceptor(DbType.MYSQL)`. Underscore-to-camelCase mapping enabled. SQL logging to stdout.
+- **DataInitializer**: `CommandLineRunner` that seeds a default SYSTEM report template ("胶片射线报告A") on first startup. Uses WJ-11 (首页) + WJ-12 (附页) standard format with RT technical parameters, inspection result statistics, image area, signature blocks, and an appendix weld detail table.
+- **InspectionRecord**: The largest entity — contains both generic inspection fields and 40+ RT射线检测 (film radiography) specific fields including film parameters, source/equipment details, exposure parameters, defect tracking, and yield statistics. Some RT fields overlap with ProcessCard fields (both describe technique parameters) but serve different purposes: ProcessCard defines the technique *specification*, InspectionRecord captures the *as-performed* values.
 - **Entity → DTO conversion**: `UserInfo` is the safe-to-expose user representation (no password). Conversion happens in service layer via `toUserInfo()`.
 - **CORS**: `CorsConfig` allows all origins (`*`) with credentials, all methods (GET/POST/PUT/DELETE/OPTIONS), and all headers.
 - **User identity in controllers**: Retrieve via `request.getAttribute("userId")` (Long) and `request.getAttribute("username")` (String).
@@ -124,7 +127,7 @@ frontend/src/
 ```
 
 - **HTTP client**: `src/utils/request.js` — Axios instance with base `/api`, JWT injected via request interceptor, `R<T>` unwrapped in response interceptor, 401 triggers redirect to `/login`.
-- **API module convention**: Each `src/api/*.js` imports `request` and exports functions that call `request.get/post/put/delete(path, params)`. The response interceptor returns `res.data` directly (already unwrapped from `R<T>`), so callers receive the payload without `.code`/`.message` fields.
+- **API module convention**: Each `src/api/*.js` imports `request` and exports functions that call `request.get/post/put/delete(path, params)`. The response interceptor returns `response.data` (the full `R<T>` wrapper: `{ code, message, data }`), so callers access the payload via `.data` on the returned object.
 - **Auth guard**: `router.beforeEach` checks `localStorage.getItem('token')`, redirects to `/login?redirect=...` if missing on protected routes.
 - **State**: Pinia stores. `user.js` holds token + userInfo in localStorage.
 - **UI library**: Element Plus (primary). VXE Table for complex tables (reports, user lists, etc.). ECharts for dashboard charts. `vue-draggable-plus` for template layout drag & drop. The inspection entry page uses jspreadsheet-ce (see below) instead of VXE Table.
@@ -140,6 +143,7 @@ frontend/src/
   /project/create               → ProjectCreateView
   /project/:id/detail           → ProjectDetailView
   /inspection/:projectId/entry  → InspectionEntryView (data entry grid)
+  /process-card                 → ProcessCardView (process card management)
   /report                       → ReportListView
   /report/design/:id            → ReportDesignView (template designer)
   /report/preview/:id           → ReportPreviewView
@@ -170,7 +174,7 @@ The inspection entry page uses **jspreadsheet-ce v5.0.4** with a specific setup:
 - Database: `scjc_ndt` (MySQL, utf8mb4)
 - Initial schema & seed data: `doc/sql/init.sql`
 - Seed account: `admin` / `admin123` (SYSTEM_ADMIN)
-- 11 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `system_image`, `report_template`, `report_record`, `signature_record`
+- 12 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `process_card`, `system_image`, `report_template`, `report_record`, `signature_record`
 
 ### Default config (application.yml)
 - Port: `8088`

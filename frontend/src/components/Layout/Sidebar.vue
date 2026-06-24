@@ -14,7 +14,7 @@ const menuItems = computed(() => {
   const items = [
     {
       index: '/dashboard',
-      title: '驾驶舱',
+      title: '数据总览',
       icon: 'Odometer',
       visible: true,
     },

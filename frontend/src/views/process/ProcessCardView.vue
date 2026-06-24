@@ -396,6 +396,8 @@ async function handleSave() {
         const existingRow = rowIdx < tableData.length ? tableData[rowIdx] : null
 
         if (existingRow?.id) {
+          // PROJECT_ADMIN can only create, not modify
+          if (userStore.isProjectAdmin) continue
           await processCardApi.update(existingRow.id, { ...rowData, projectId: selectedProjectId.value })
           Object.assign(existingRow, rowData)
           saved++
@@ -703,7 +705,7 @@ onBeforeUnmount(() => {
         <el-button :icon="Upload" @click="handleImportClick">导入Excel</el-button>
         <input ref="importRef" type="file" accept=".xlsx,.xls" style="display: none" @change="handleImportFile" />
         <el-button :icon="Download" @click="handleExport">导出Excel</el-button>
-        <el-tooltip content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
+        <el-tooltip v-if="!userStore.isProjectAdmin" content="先点击表格中目标行的任意单元格，再点此按钮" placement="top">
           <el-button :icon="Delete" type="danger" plain @click="handleDeleteSelected">删除行</el-button>
         </el-tooltip>
       </div>

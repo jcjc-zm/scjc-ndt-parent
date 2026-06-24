@@ -2,6 +2,7 @@ package com.scjc.ndt.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import java.math.BigDecimal;
 
 @Data
 public class ProjectRequest {
@@ -14,4 +15,11 @@ public class ProjectRequest {
     private String buName;
     private String projectType;
     private String constructionUnit;
+    private String designUnit;
+    private String supervisionUnit;
+    private String contractNo;
+    private BigDecimal contractAmount;
+    private String projectManager;
+    private String projectLocation;
+    private String projectDescription;
 }

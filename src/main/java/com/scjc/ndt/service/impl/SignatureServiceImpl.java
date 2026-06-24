@@ -27,9 +27,14 @@ public class SignatureServiceImpl implements SignatureService {
         List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
         );
-        List<String> roles = roleMapper.selectBatchIds(
-            rels.stream().map(UserRoleRel::getRoleId).toList()
-        ).stream().map(SysRole::getRoleCode).toList();
+        List<String> roles;
+        if (rels.isEmpty()) {
+            roles = List.of();
+        } else {
+            roles = roleMapper.selectBatchIds(
+                rels.stream().map(UserRoleRel::getRoleId).toList()
+            ).stream().map(SysRole::getRoleCode).toList();
+        }
 
         LambdaQueryWrapper<SignatureRecord> q = new LambdaQueryWrapper<>();
         q.eq(SignatureRecord::getSignStatus, "PENDING");
@@ -49,9 +54,14 @@ public class SignatureServiceImpl implements SignatureService {
         List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
         );
-        List<String> roles = roleMapper.selectBatchIds(
-            rels.stream().map(UserRoleRel::getRoleId).toList()
-        ).stream().map(SysRole::getRoleCode).toList();
+        List<String> roles;
+        if (rels.isEmpty()) {
+            roles = List.of();
+        } else {
+            roles = roleMapper.selectBatchIds(
+                rels.stream().map(UserRoleRel::getRoleId).toList()
+            ).stream().map(SysRole::getRoleCode).toList();
+        }
 
         SignatureRecord sig = signatureMapper.selectOne(
             new LambdaQueryWrapper<SignatureRecord>()

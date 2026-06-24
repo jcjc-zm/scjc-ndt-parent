@@ -43,13 +43,16 @@ public class ProcessCardController {
 
     @PutMapping("/{id}")
     public R<ProcessCard> update(@PathVariable Long id,
-                                  @RequestBody ProcessCardRequest req) {
-        return R.ok(processCardService.update(id, req));
+                                  @RequestBody ProcessCardRequest req,
+                                  HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return R.ok(processCardService.update(id, req, userId));
     }
 
     @DeleteMapping("/{id}")
-    public R<Void> delete(@PathVariable Long id) {
-        processCardService.delete(id);
+    public R<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        processCardService.delete(id, userId);
         return R.ok();
     }
 

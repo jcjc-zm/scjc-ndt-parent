@@ -72,6 +72,13 @@ public class ProjectServiceImpl implements ProjectService {
         project.setBuName(request.getBuName());
         project.setProjectType(request.getProjectType());
         project.setConstructionUnit(request.getConstructionUnit());
+        project.setDesignUnit(request.getDesignUnit());
+        project.setSupervisionUnit(request.getSupervisionUnit());
+        project.setContractNo(request.getContractNo());
+        project.setContractAmount(request.getContractAmount());
+        project.setProjectManager(request.getProjectManager());
+        project.setProjectLocation(request.getProjectLocation());
+        project.setProjectDescription(request.getProjectDescription());
         project.setStatus("PENDING");
         project.setCreateBy(creatorId);
         projectMapper.insert(project);
@@ -79,12 +86,23 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public SysProject update(Long id, ProjectRequest request) {
+    public SysProject update(Long id, ProjectRequest request, Long userId) {
+        // 仅系统管理员可修改项目信息
+        if (!isSystemAdmin(userId)) {
+            throw new BusinessException(403, "仅系统管理员可修改项目信息");
+        }
         SysProject project = projectMapper.selectById(id);
         if (project == null) throw new BusinessException("项目不存在");
         if (StringUtils.hasText(request.getProjectName())) project.setProjectName(request.getProjectName());
         if (StringUtils.hasText(request.getUnitProjectName())) project.setUnitProjectName(request.getUnitProjectName());
         if (StringUtils.hasText(request.getConstructionUnit())) project.setConstructionUnit(request.getConstructionUnit());
+        if (StringUtils.hasText(request.getDesignUnit())) project.setDesignUnit(request.getDesignUnit());
+        if (StringUtils.hasText(request.getSupervisionUnit())) project.setSupervisionUnit(request.getSupervisionUnit());
+        if (StringUtils.hasText(request.getContractNo())) project.setContractNo(request.getContractNo());
+        if (request.getContractAmount() != null) project.setContractAmount(request.getContractAmount());
+        if (StringUtils.hasText(request.getProjectManager())) project.setProjectManager(request.getProjectManager());
+        if (StringUtils.hasText(request.getProjectLocation())) project.setProjectLocation(request.getProjectLocation());
+        if (StringUtils.hasText(request.getProjectDescription())) project.setProjectDescription(request.getProjectDescription());
         projectMapper.updateById(project);
         return project;
     }
@@ -209,5 +227,9 @@ public class ProjectServiceImpl implements ProjectService {
         return userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
         ).stream().map(r -> roleMapper.selectById(r.getRoleId()).getRoleCode()).collect(Collectors.toList());
+    }
+
+    private boolean isSystemAdmin(Long userId) {
+        return getRoleCodes(userId).contains("SYSTEM_ADMIN");
     }
 }

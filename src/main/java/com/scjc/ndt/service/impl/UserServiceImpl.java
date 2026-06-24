@@ -28,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final UserRoleRelMapper userRoleRelMapper;
     private final UserProjectRelMapper userProjectRelMapper;
     private final SysDeptMapper deptMapper;
+    private final SysProjectMapper projectMapper;
     private final PasswordEncoder passwordEncoder;
 
     private static final Set<String> CAN_CREATE_SYSTEM = Set.of("COMPANY_ADMIN", "BU_ADMIN", "PROJECT_ADMIN", "TECHNICAL_LEADER", "PROJECT_MANAGER");
@@ -185,6 +186,11 @@ public class UserServiceImpl implements UserService {
             new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, user.getId())
         );
         info.setProjectIds(projRels.stream().map(UserProjectRel::getProjectId).collect(Collectors.toList()));
+        if (!projRels.isEmpty()) {
+            List<Long> pids = projRels.stream().map(UserProjectRel::getProjectId).collect(Collectors.toList());
+            info.setProjectNames(projectMapper.selectBatchIds(pids).stream()
+                .map(SysProject::getProjectName).collect(Collectors.toList()));
+        }
         return info;
     }
 
@@ -192,6 +198,9 @@ public class UserServiceImpl implements UserService {
         List<UserRoleRel> rels = userRoleRelMapper.selectList(
             new LambdaQueryWrapper<UserRoleRel>().eq(UserRoleRel::getUserId, userId)
         );
+        if (rels.isEmpty()) {
+            return List.of();
+        }
         List<Long> roleIds = rels.stream().map(UserRoleRel::getRoleId).collect(Collectors.toList());
         return roleMapper.selectBatchIds(roleIds).stream().map(SysRole::getRoleCode).collect(Collectors.toList());
     }

@@ -19,6 +19,13 @@ const form = reactive({
   parentId: null,
   buName: '',
   constructionUnit: '',
+  designUnit: '',
+  supervisionUnit: '',
+  contractNo: '',
+  contractAmount: null,
+  projectManager: '',
+  projectLocation: '',
+  projectDescription: '',
 })
 
 const rules = {
@@ -166,6 +173,77 @@ watch(() => form.projectType, () => {
             placeholder="请输入施工单位名称"
             style="width: 400px"
             clearable
+          />
+        </el-form-item>
+
+        <!-- Extended info (optional) -->
+        <el-divider content-position="left">扩展信息（选填）</el-divider>
+
+        <el-form-item label="设计单位" prop="designUnit">
+          <el-input
+            v-model="form.designUnit"
+            placeholder="请输入设计单位"
+            style="width: 400px"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="监理单位" prop="supervisionUnit">
+          <el-input
+            v-model="form.supervisionUnit"
+            placeholder="请输入监理单位"
+            style="width: 400px"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="合同编号" prop="contractNo">
+          <el-input
+            v-model="form.contractNo"
+            placeholder="请输入合同编号"
+            style="width: 400px"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="合同金额" prop="contractAmount">
+          <el-input-number
+            v-model="form.contractAmount"
+            :precision="2"
+            :min="0"
+            :controls="true"
+            placeholder="请输入合同金额"
+            style="width: 300px"
+          />
+        </el-form-item>
+
+        <el-form-item label="项目经理" prop="projectManager">
+          <el-input
+            v-model="form.projectManager"
+            placeholder="请输入项目经理姓名"
+            style="width: 300px"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="工程地点" prop="projectLocation">
+          <el-input
+            v-model="form.projectLocation"
+            placeholder="请输入工程地点"
+            style="width: 400px"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="项目描述" prop="projectDescription">
+          <el-input
+            v-model="form.projectDescription"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入项目描述"
+            style="width: 500px"
+            maxlength="500"
+            show-word-limit
           />
         </el-form-item>
 

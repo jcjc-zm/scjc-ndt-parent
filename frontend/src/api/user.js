@@ -17,9 +17,9 @@ export const userApi = {
     return request.put(`/users/${id}/status`, { status })
   },
   assignRoles(id, roleIds) {
-    return request.post(`/users/${id}/roles`, { roleIds })
+    return request.post(`/users/${id}/roles`, roleIds)
   },
   assignProjects(id, projectIds) {
-    return request.post(`/users/${id}/projects`, { projectIds })
+    return request.post(`/users/${id}/projects`, projectIds)
   },
 }

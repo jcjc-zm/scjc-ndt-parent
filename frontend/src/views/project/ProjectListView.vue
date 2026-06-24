@@ -279,6 +279,7 @@ onMounted(() => {
             </template>
           </el-table-column>
           <el-table-column prop="constructionUnit" label="施工单位" width="140" show-overflow-tooltip />
+          <el-table-column prop="contractNo" label="合同编号" width="140" show-overflow-tooltip />
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="statusMap[row.status]?.type || 'info'" effect="light" size="small">

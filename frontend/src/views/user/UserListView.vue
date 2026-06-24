@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
@@ -43,6 +43,16 @@ const form = reactive({
 const roleDialogVisible = ref(false)
 const roleDialogUser = ref(null)
 const selectedRoleIds = ref([])
+const selectedProjectIds = ref([])
+const selectedBuId = ref(null)
+
+// Computed role IDs
+const companyAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'COMPANY_ADMIN')?.id)
+const buAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'BU_ADMIN')?.id)
+const projectAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'PROJECT_ADMIN')?.id)
+
+// BU depts for BU_ADMIN selector
+const buDepts = computed(() => allDepts.value.filter(d => d.deptType === 'BU'))
 
 const statusMap = { 1: { label: '正常', type: 'success' }, 0: { label: '禁用', type: 'danger' } }
 
@@ -78,7 +88,7 @@ function openCreateDialog() {
   editingUser.value = null
   Object.assign(form, {
     username: '', password: '', realName: '', phone: '', email: '',
-    deptId: null, status: 1, roleIds: [], projectIds: [],
+    deptId: null, status: 1, roleIds: companyAdminRoleId.value ? [companyAdminRoleId.value] : [], projectIds: [],
   })
   dialogVisible.value = true
 }
@@ -134,14 +144,46 @@ async function toggleStatus(row) {
 // ─── Role Assignment ───
 function openRoleDialog(row) {
   roleDialogUser.value = row
-  selectedRoleIds.value = row._roles?.map((r) => r.id) || []
+  // Map user's role codes (from backend) to role IDs for checkbox group
+  const userRoleCodes = row.roles || []
+  selectedRoleIds.value = allRoles.value
+    .filter(r => userRoleCodes.includes(r.roleCode))
+    .map(r => r.id)
+  // Pre-populate project assignments
+  selectedProjectIds.value = row.projectIds || []
+  // Pre-populate BU if user's dept is a BU
+  const dept = allDepts.value.find(d => d.id === row.deptId)
+  selectedBuId.value = dept?.deptType === 'BU' ? dept.id : null
   roleDialogVisible.value = true
 }
 
 async function saveRoles() {
   if (!roleDialogUser.value) return
   try {
-    await userApi.assignRoles(roleDialogUser.value.id, selectedRoleIds.value)
+    const userId = roleDialogUser.value.id
+    await userApi.assignRoles(userId, selectedRoleIds.value)
+
+    // Resolve selected role codes
+    const selectedRoleCodes = allRoles.value
+      .filter(r => selectedRoleIds.value.includes(r.id))
+      .map(r => r.roleCode)
+
+    // Collect project IDs from PROJECT_ADMIN + BU_ADMIN selections
+    let allProjectIds = []
+    if (selectedRoleCodes.includes('PROJECT_ADMIN')) {
+      allProjectIds.push(...selectedProjectIds.value)
+    }
+    if (selectedRoleCodes.includes('BU_ADMIN') && selectedBuId.value) {
+      const buProjects = allProjects.value.filter(p => p.parentId === selectedBuId.value)
+      allProjectIds.push(...buProjects.map(p => p.id))
+      // Also update the user's deptId to the selected BU
+      await userApi.update(userId, { username: roleDialogUser.value.username, deptId: selectedBuId.value })
+    }
+    // Only touch project assignments if a relevant role is selected
+    if (selectedRoleCodes.includes('PROJECT_ADMIN') || selectedRoleCodes.includes('BU_ADMIN')) {
+      await userApi.assignProjects(userId, [...new Set(allProjectIds)])
+    }
+
     ElMessage.success('角色已分配')
     roleDialogVisible.value = false
     loadData()
@@ -196,6 +238,11 @@ onMounted(() => {
         </el-table-column>
         <el-table-column prop="phone" label="手机号" width="130" show-overflow-tooltip />
         <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
+        <el-table-column label="所属项目" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.projectNames?.join('、') || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="statusMap[row.status]?.type || 'info'" size="small" effect="light">
@@ -260,7 +307,7 @@ onMounted(() => {
     </el-dialog>
 
     <!-- Role Assignment Dialog -->
-    <el-dialog v-model="roleDialogVisible" title="分配角色" width="400px" destroy-on-close>
+    <el-dialog v-model="roleDialogVisible" title="分配角色" width="480px" destroy-on-close>
       <el-checkbox-group v-model="selectedRoleIds">
         <div v-for="role in allRoles" :key="role.id" style="margin-bottom: 12px">
           <el-checkbox :label="role.id" :value="role.id">
@@ -269,6 +316,28 @@ onMounted(() => {
           </el-checkbox>
         </div>
       </el-checkbox-group>
+
+      <!-- PROJECT_ADMIN: assign projects -->
+      <el-divider v-if="selectedRoleIds.includes(projectAdminRoleId)" />
+      <div v-if="selectedRoleIds.includes(projectAdminRoleId)" style="margin-bottom: 16px">
+        <div style="margin-bottom: 6px; font-size: 14px; color: var(--el-text-color-regular)">所属项目</div>
+        <el-select v-model="selectedProjectIds" multiple placeholder="选择项目" style="width: 100%" clearable filterable>
+          <el-option v-for="p in allProjects" :key="p.id" :label="p.projectName" :value="p.id">
+            <span>{{ p.projectName }}</span>
+            <span style="float: right; color: var(--color-text-secondary); font-size: 12px">{{ p.projectCode }}</span>
+          </el-option>
+        </el-select>
+      </div>
+
+      <!-- BU_ADMIN: assign BU -->
+      <el-divider v-if="selectedRoleIds.includes(buAdminRoleId)" />
+      <div v-if="selectedRoleIds.includes(buAdminRoleId)" style="margin-bottom: 16px">
+        <div style="margin-bottom: 6px; font-size: 14px; color: var(--el-text-color-regular)">所属事业部</div>
+        <el-select v-model="selectedBuId" placeholder="选择事业部" style="width: 100%" clearable>
+          <el-option v-for="bu in buDepts" :key="bu.id" :label="bu.deptName" :value="bu.id" />
+        </el-select>
+      </div>
+
       <template #footer>
         <el-button @click="roleDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveRoles">保存</el-button>

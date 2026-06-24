@@ -12,9 +12,9 @@ public interface ProcessCardService {
 
     ProcessCard create(ProcessCardRequest request, Long userId);
 
-    ProcessCard update(Long id, ProcessCardRequest request);
+    ProcessCard update(Long id, ProcessCardRequest request, Long userId);
 
-    void delete(Long id);
+    void delete(Long id, Long userId);
 
     ProcessCard getById(Long id);
 
