@@ -104,7 +104,7 @@ function quickFill(account) {
         <div class="quick-accounts">
           <span class="quick-label">快速登录:</span>
           <el-tag
-            v-for="acc in ['admin', 'zhangsan', 'lisi']"
+            v-for="acc in ['admin', 'zhangsan']"
             :key="acc"
             class="quick-tag"
             size="small"
@@ -117,7 +117,7 @@ function quickFill(account) {
     </div>
 
     <!-- Footer -->
-    <p class="login-footer">© 2026 SCJC 四川川际工程技术有限公司</p>
+    <p class="login-footer">©四川佳诚油气管道质量检测有限公司信息化开发组</p>
   </div>
 </template>
 

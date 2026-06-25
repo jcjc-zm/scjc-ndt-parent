@@ -15,10 +15,16 @@ mvn clean package          # compile + package + run any tests
 mvn spring-boot:run        # development server on port 8088
 java -jar target/scjc-ndt-parent-1.0-SNAPSHOT.jar
 
-# Tests (spring-boot-starter-test is configured, uses JUnit 5 + Mockito)
+# Tests (JUnit 5 + Mockito)
 mvn test                                          # run all tests
 mvn test -Dtest=ClassName                         # run single test class
 mvn test -Dtest=ClassName#methodName              # run single test method
+
+# Test conventions:
+# - @Test + @DisplayName("中文描述") for JUnit 5 test naming
+# - Mockito mock() / when() for dependency stubbing
+# - Assertions: assertEquals, assertNotNull, assertThrows
+# - See FlexibleLocalDateDeserializerTest for the canonical pattern
 ```
 
 ### Frontend (Vue 3 + Vite)
@@ -35,7 +41,7 @@ npx playwright test        # run Playwright tests
 
 Full-stack dev: start backend (`mvn spring-boot:run`) and frontend (`npm run dev`) concurrently, then open `http://localhost:5173`.
 
-**Note:** No Maven wrapper (`mvnw`) is included — Maven must be installed and on `PATH`. Tests use JUnit 5 (`@Test`, `@DisplayName`) + Mockito (`mock()`, `when()`) — see `FlexibleLocalDateDeserializerTest` for the pattern.
+**Note:** No Maven wrapper (`mvnw`) is included — Maven must be installed and on `PATH`.
 
 ### Vite dev proxy
 
@@ -93,6 +99,8 @@ dto/          —  request/response POJOs with jakarta.validation (UserInfo, Tre
 - **Date deserialization**: `FlexibleLocalDateDeserializer` (custom Jackson `JsonDeserializer`) handles 7 date formats (`yyyy-MM-dd`, `yyyy/M/d`, `yyyy.M.d`, `yyyyMMdd`, etc.) plus Excel serial numbers (e.g., `45735` → `2025-03-19`). Used via `@JsonDeserialize(using = ...)` on `LocalDate` fields in `InspectionRequest` and `ProcessCardRequest`.
 - **Validation groups**: DTOs use `jakarta.validation` with groups for differential validation. E.g., `InspectionRequest` defines `OnCreate` interface — `@NotBlank(groups = OnCreate.class)` on `weldNo` enforces it only during create, not update. Controllers annotate with `@Validated(OnCreate.class)` or `@Valid` (no groups).
 - **Org tree**: `GET /api/projects/tree` returns a permission-aware nested org tree (`TreeNode`: id, label, type, children, buName). Users see only projects in their scope (SYSTEM_ADMIN sees all, BU_ADMIN sees their BU's projects, etc.).
+- **Data scoping**: Service methods follow a consistent authorization pattern — `SYSTEM_ADMIN` and `COMPANY_ADMIN` see all data (`getProjectIds()` returns `null` → no filter); all other roles see only their assigned projects (queried via `user_project_rel`). This is applied in `InspectionServiceImpl`, `ProjectServiceImpl`, etc. via `LambdaQueryWrapper.in(projectIds)` or an all-pass when the list is `null`.
+- **Service layer patterns**: Services use `@RequiredArgsConstructor` (Lombok) for constructor injection, `@Transactional` on write operations, `LambdaQueryWrapper` for type-safe queries, and `Page<T>` + `IPage<T>` for MyBatis-Plus pagination. Errors are signaled via `throw new BusinessException(code, message)` — controllers never catch.
 
 ### Role hierarchy (6 fixed roles)
 
@@ -130,13 +138,28 @@ frontend/src/
 ```
 
 - **HTTP client**: `src/utils/request.js` — Axios instance with base `/api`, JWT injected via request interceptor, `R<T>` unwrapped in response interceptor, 401 triggers redirect to `/login`.
-- **API module convention**: Each `src/api/*.js` imports `request` and exports functions that call `request.get/post/put/delete(path, params)`. The response interceptor returns `response.data` (the full `R<T>` wrapper: `{ code, message, data }`), so callers access the payload via `.data` on the returned object.
 - **Auth guard**: `router.beforeEach` checks `localStorage.getItem('token')`, redirects to `/login?redirect=...` if missing on protected routes.
-- **State**: Pinia stores. `user.js` holds token + userInfo in localStorage.
+- **State**: Two Pinia stores — `user.js` (auth state, token + userInfo in localStorage, role-check computed properties) and `app.js` (sidebar collapsed state, breadcrumbs).
+- **Dashboard map**: The dashboard (`DashboardView.vue`) renders a Leaflet map with 高德 (AutoNavi) tile layer (`webrd0{s}.is.autonavi.com`) for project location visualization.
 - **UI library**: Element Plus (primary). VXE Table for complex tables (reports, user lists, etc.). ECharts for dashboard charts. `vue-draggable-plus` for template layout drag & drop. The inspection entry page uses jspreadsheet-ce (see below) instead of VXE Table.
+- **API module convention**: Each `src/api/*.js` exports a named object (e.g., `export const authApi = { login(data) {...}, me() {...} }`). Methods call `request.get/post/put/delete(path, params)`. The response interceptor returns the full `R<T>` wrapper `{ code, message, data }` — callers access the payload via `.data` on the returned object.
 - **Project statuses**: Defined in `src/constants/projectStatus.js` — `PENDING` (待启动), `IN_PROGRESS` (进行中), `COMPLETED` (已完成).
+- **Frontend permission model**: The `user.js` Pinia store exposes role-check computed properties used throughout the UI for conditional rendering. Key permission gates:
+  - `canManageUsers` — SYSTEM_ADMIN, COMPANY_ADMIN, or BU_ADMIN
+  - `canCreateProject` — SYSTEM_ADMIN or BU_ADMIN
+  - `canEditProject` — SYSTEM_ADMIN only
+  - `canEditInspection` — SYSTEM_ADMIN, BU_ADMIN, or PROJECT_ADMIN
+  - `canSign` — TECHNICAL_LEADER or PROJECT_MANAGER
+  - Individual role booleans: `isSystemAdmin`, `isCompanyAdmin`, `isBuAdmin`, `isProjectAdmin`, `isTechnicalLeader`, `isProjectManagerRole`
+  - `permissions` and `projectIds` arrays are synced to localStorage at login for quick checks without API calls.
+- **Sidebar menu visibility**: `Sidebar.vue` builds menu items with role-based `visible` flags — 签字审批 requires `canSign`, 用户管理 requires `canManageUsers`, 系统设置 requires `isSystemAdmin`. Active menu highlighting maps sub-routes to parent paths (e.g., `/inspection/*` → `/project`, `/report/design/*` → `/report`).
 
 ### Frontend routing
+
+Route `meta` conventions:
+- `public: true` — skips auth guard (login, 403, 404)
+- `hidden: true` — excluded from sidebar navigation (child/detail/create pages)
+- `icon: 'IconName'` — Element Plus icon name for sidebar rendering
 
 ```
 /login                          → LoginView (public)
@@ -175,8 +198,9 @@ The inspection entry page uses **jspreadsheet-ce v5.0.4** with a specific setup:
 
 ### Database
 - Database: `scjc_ndt` (MySQL, utf8mb4)
-- Initial schema & seed data: `doc/sql/init.sql`
+- Initial schema & seed data: `doc/sql/init.sql` — self-contained script that creates the DB, drops/recreates all 12 tables, and inserts seed data. Run directly in MySQL before first backend start.
 - Seed account: `admin` / `admin123` (SYSTEM_ADMIN)
+- Seed org: 1 COMPANY (SCJC公司) → 5 BUs (成都/重庆/新疆/长庆/完整性检测所事业部), each with sample projects
 - 12 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `process_card`, `system_image`, `report_template`, `report_record`, `signature_record`
 
 ### Default config (application.yml)
