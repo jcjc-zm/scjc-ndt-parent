@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +45,20 @@ public class InspectionServiceImpl implements InspectionService {
             .collect(Collectors.toList());
         if (roles.contains("SYSTEM_ADMIN") || roles.contains("COMPANY_ADMIN")) {
             return null; // all projects
+        }
+        // BU_ADMIN: 可见所属事业部下的所有项目
+        if (roles.contains("BU_ADMIN")) {
+            List<SysProject> userProjects = userProjectRelMapper.selectList(
+                new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)
+            ).stream().map(r -> projectMapper.selectById(r.getProjectId()))
+              .filter(Objects::nonNull).collect(Collectors.toList());
+            List<String> buNames = userProjects.stream()
+                .map(SysProject::getBuName).filter(Objects::nonNull).distinct()
+                .collect(Collectors.toList());
+            if (buNames.isEmpty()) return List.of();
+            return projectMapper.selectList(
+                new LambdaQueryWrapper<SysProject>().in(SysProject::getBuName, buNames)
+            ).stream().map(SysProject::getId).collect(Collectors.toList());
         }
         return userProjectRelMapper.selectList(
             new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)

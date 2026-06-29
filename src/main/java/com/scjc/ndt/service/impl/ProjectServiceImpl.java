@@ -40,9 +40,13 @@ public class ProjectServiceImpl implements ProjectService {
             if (roles.contains("BU_ADMIN")) {
                 List<SysProject> userProjects = userProjectRelMapper.selectList(
                     new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)
-                ).stream().map(r -> projectMapper.selectById(r.getProjectId())).collect(Collectors.toList());
-                List<String> buNames = userProjects.stream().map(SysProject::getBuName).distinct().collect(Collectors.toList());
-                q.in(SysProject::getBuName, buNames.isEmpty() ? Arrays.asList("") : buNames);
+                ).stream().map(r -> projectMapper.selectById(r.getProjectId()))
+                  .filter(Objects::nonNull).collect(Collectors.toList());
+                List<String> buNames = userProjects.stream()
+                    .map(SysProject::getBuName).filter(Objects::nonNull).distinct()
+                    .collect(Collectors.toList());
+                // 空列表时用不可能匹配的值，防止误匹配 bu_name 为 NULL 或空串的项目
+                q.in(SysProject::getBuName, buNames.isEmpty() ? List.of("__NONEXISTENT__") : buNames);
             } else {
                 List<Long> projectIds = userProjectRelMapper.selectList(
                     new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)
@@ -161,11 +165,13 @@ public class ProjectServiceImpl implements ProjectService {
             if (roles.contains("BU_ADMIN")) {
                 List<SysProject> userProjects = userProjectRelMapper.selectList(
                     new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)
-                ).stream().map(r -> projectMapper.selectById(r.getProjectId())).collect(Collectors.toList());
+                ).stream().map(r -> projectMapper.selectById(r.getProjectId()))
+                  .filter(Objects::nonNull).collect(Collectors.toList());
                 List<String> buNames = userProjects.stream()
                     .map(SysProject::getBuName).filter(Objects::nonNull).distinct()
                     .collect(Collectors.toList());
-                projQ.in(SysProject::getBuName, buNames.isEmpty() ? List.of("") : buNames);
+                // 空列表时用不可能匹配的值，防止误匹配 bu_name 为 NULL 或空串的项目
+                projQ.in(SysProject::getBuName, buNames.isEmpty() ? List.of("__NONEXISTENT__") : buNames);
             } else {
                 List<Long> projectIds = userProjectRelMapper.selectList(
                     new LambdaQueryWrapper<UserProjectRel>().eq(UserProjectRel::getUserId, userId)

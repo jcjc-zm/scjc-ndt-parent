@@ -50,6 +50,31 @@ const selectedBuId = ref(null)
 const companyAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'COMPANY_ADMIN')?.id)
 const buAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'BU_ADMIN')?.id)
 const projectAdminRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'PROJECT_ADMIN')?.id)
+const technicalLeaderRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'TECHNICAL_LEADER')?.id)
+const projectManagerRoleId = computed(() => allRoles.value.find(r => r.roleCode === 'PROJECT_MANAGER')?.id)
+
+// 当前用户可创建的角色编码集合
+const creatableRoleCodes = computed(() => {
+  if (userStore.isSystemAdmin) return ['COMPANY_ADMIN', 'BU_ADMIN', 'PROJECT_ADMIN', 'TECHNICAL_LEADER', 'PROJECT_MANAGER']
+  if (userStore.isCompanyAdmin) return ['BU_ADMIN']
+  if (userStore.isBuAdmin) return ['PROJECT_ADMIN', 'TECHNICAL_LEADER', 'PROJECT_MANAGER']
+  return []
+})
+
+// 角色对话框中可选的角色列表（按权限过滤）
+const availableRoles = computed(() => {
+  if (userStore.isSystemAdmin) return allRoles.value
+  return allRoles.value.filter(r => creatableRoleCodes.value.includes(r.roleCode))
+})
+
+// 需要分配项目的角色 ID 列表
+const projectScopedRoleIds = computed(() => {
+  const ids = []
+  if (projectAdminRoleId.value) ids.push(projectAdminRoleId.value)
+  if (technicalLeaderRoleId.value) ids.push(technicalLeaderRoleId.value)
+  if (projectManagerRoleId.value) ids.push(projectManagerRoleId.value)
+  return ids
+})
 
 // BU depts for BU_ADMIN selector
 const buDepts = computed(() => allDepts.value.filter(d => d.deptType === 'BU'))
@@ -86,9 +111,16 @@ async function loadRefs() {
 function openCreateDialog() {
   dialogTitle.value = '新增用户'
   editingUser.value = null
+  // 根据当前用户角色设置默认角色
+  let defaultRoleIds = []
+  if (userStore.isSystemAdmin && companyAdminRoleId.value) {
+    defaultRoleIds = [companyAdminRoleId.value]
+  } else if (userStore.isBuAdmin && projectAdminRoleId.value) {
+    defaultRoleIds = [projectAdminRoleId.value]
+  }
   Object.assign(form, {
     username: '', password: '', realName: '', phone: '', email: '',
-    deptId: null, status: 1, roleIds: companyAdminRoleId.value ? [companyAdminRoleId.value] : [], projectIds: [],
+    deptId: null, status: 1, roleIds: defaultRoleIds, projectIds: [],
   })
   dialogVisible.value = true
 }
@@ -168,19 +200,24 @@ async function saveRoles() {
       .filter(r => selectedRoleIds.value.includes(r.id))
       .map(r => r.roleCode)
 
-    // Collect project IDs from PROJECT_ADMIN + BU_ADMIN selections
+    // Collect project IDs from project-scoped roles
     let allProjectIds = []
-    if (selectedRoleCodes.includes('PROJECT_ADMIN')) {
+    // PROJECT_ADMIN / TECHNICAL_LEADER / PROJECT_MANAGER: 手动选择项目
+    if (selectedRoleCodes.some(code => ['PROJECT_ADMIN', 'TECHNICAL_LEADER', 'PROJECT_MANAGER'].includes(code))) {
       allProjectIds.push(...selectedProjectIds.value)
     }
+    // BU_ADMIN: 自动关联所属事业部下的所有项目
     if (selectedRoleCodes.includes('BU_ADMIN') && selectedBuId.value) {
-      const buProjects = allProjects.value.filter(p => p.parentId === selectedBuId.value)
-      allProjectIds.push(...buProjects.map(p => p.id))
+      const bu = allDepts.value.find(d => d.id === selectedBuId.value)
+      if (bu) {
+        const buProjects = allProjects.value.filter(p => p.buName === bu.buName)
+        allProjectIds.push(...buProjects.map(p => p.id))
+      }
       // Also update the user's deptId to the selected BU
       await userApi.update(userId, { username: roleDialogUser.value.username, deptId: selectedBuId.value })
     }
-    // Only touch project assignments if a relevant role is selected
-    if (selectedRoleCodes.includes('PROJECT_ADMIN') || selectedRoleCodes.includes('BU_ADMIN')) {
+    // 只要选中了需要项目关联的角色，就更新项目分配
+    if (selectedRoleCodes.some(code => ['PROJECT_ADMIN', 'TECHNICAL_LEADER', 'PROJECT_MANAGER', 'BU_ADMIN'].includes(code))) {
       await userApi.assignProjects(userId, [...new Set(allProjectIds)])
     }
 
@@ -309,7 +346,7 @@ onMounted(() => {
     <!-- Role Assignment Dialog -->
     <el-dialog v-model="roleDialogVisible" title="分配角色" width="480px" destroy-on-close>
       <el-checkbox-group v-model="selectedRoleIds">
-        <div v-for="role in allRoles" :key="role.id" style="margin-bottom: 12px">
+        <div v-for="role in availableRoles" :key="role.id" style="margin-bottom: 12px">
           <el-checkbox :label="role.id" :value="role.id">
             <strong>{{ role.roleName }}</strong>
             <span class="text-secondary" style="font-size: 12px; margin-left: 4px">{{ role.roleCode }}</span>
@@ -317,9 +354,9 @@ onMounted(() => {
         </div>
       </el-checkbox-group>
 
-      <!-- PROJECT_ADMIN: assign projects -->
-      <el-divider v-if="selectedRoleIds.includes(projectAdminRoleId)" />
-      <div v-if="selectedRoleIds.includes(projectAdminRoleId)" style="margin-bottom: 16px">
+      <!-- 项目级角色：分配项目（PROJECT_ADMIN / TECHNICAL_LEADER / PROJECT_MANAGER） -->
+      <el-divider v-if="selectedRoleIds.some(id => projectScopedRoleIds.includes(id))" />
+      <div v-if="selectedRoleIds.some(id => projectScopedRoleIds.includes(id))" style="margin-bottom: 16px">
         <div style="margin-bottom: 6px; font-size: 14px; color: var(--el-text-color-regular)">所属项目</div>
         <el-select v-model="selectedProjectIds" multiple placeholder="选择项目" style="width: 100%" clearable filterable>
           <el-option v-for="p in allProjects" :key="p.id" :label="p.projectName" :value="p.id">

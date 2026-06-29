@@ -33,10 +33,13 @@ mvn test -Dtest=ClassName#methodName              # run single test method
 cd frontend
 npm install               # install dependencies
 npm run dev               # dev server on port 5173, proxies /api → localhost:8088
-npm run build             # production build
+npm run build             # production build (output: dist/)
+npm run preview           # preview production build locally
 
-# Browser testing (Playwright)
-npx playwright test        # run Playwright tests
+# Browser testing (Playwright — installed but no test files exist yet)
+npx playwright test                    # run all tests
+npx playwright test tests/example.spec.js  # run single file
+npx playwright test --headed           # run with browser visible
 ```
 
 Full-stack dev: start backend (`mvn spring-boot:run`) and frontend (`npm run dev`) concurrently, then open `http://localhost:5173`.
@@ -52,7 +55,7 @@ The Vite dev server proxies `/api` → `http://localhost:8088` (see `frontend/vi
 **SCJC NDT 无损检测管理系统** — Spring Boot 3.2.6 + Vue 3 monorepo with stateless JWT authentication.
 
 ### Tech stack
-**Backend:** Java 17 · Spring Boot 3.2.6 · Spring Security · MyBatis-Plus 3.5.7 · MySQL · JWT (jjwt 0.12.6) · Lombok
+**Backend:** Java 17 · Spring Boot 3.2.6 · Spring Security · Spring Validation · MyBatis-Plus 3.5.7 · MySQL · JWT (jjwt 0.12.6) · Lombok
 **Frontend:** Vue 3.5 · Vite 8 · Element Plus 2.14 · Pinia 3 · Vue Router 4 · ECharts 6 · Axios · VXE Table · html2canvas + jsPDF (report export) · SheetJS/xlsx (Excel) · @vueuse/core (composition utilities)
 
 ### Backend layer structure (standard MVC)
@@ -204,7 +207,9 @@ The inspection entry page uses **jspreadsheet-ce v5.0.4** with a specific setup:
 - 12 tables: `sys_dept`, `sys_role`, `sys_user`, `user_role_rel`, `user_project_rel`, `sys_project`, `inspection_record`, `process_card`, `system_image`, `report_template`, `report_record`, `signature_record`
 
 ### Default config (application.yml)
-- Port: `8088`
+- Port: `8088`, binds to `0.0.0.0` (all interfaces — accessible from LAN)
 - MySQL: `jdbc:mysql://localhost:3306/scjc_ndt`, user `root`, password `123456`
-- JWT: `scjc-ndt-jwt-secret-key-2026-very-long-and-secure-string`, expiration 86400000 ms (24h)
+- JWT secret & expiration in `jwt:` custom config block (not Spring-managed)
 - Jackson: `yyyy-MM-dd HH:mm:ss`, Asia/Shanghai timezone, non-null serialization
+- MyBatis-Plus: underscore-to-camelCase, SQL stdout logging, logical delete on `deleted` column, auto-increment IDs
+- Only one profile (no `application-dev.yml` / `application-prod.yml`); all config in `application.yml`
